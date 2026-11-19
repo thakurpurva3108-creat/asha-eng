@@ -537,7 +537,7 @@ async function downloadLessons() {
 
         const cache = await caches.open("vaani-v4");
 
-                await cache.addAll([
+                            await cache.addAll([
             "./",
             "./index.html",
             "./lessons.js",
@@ -561,8 +561,6 @@ async function downloadLessons() {
     }
 }
 
- $("t1").innerHTML=h;
- const ready=!!buildTest(poolOf(done,LESSONS));
  $("home").addEventListener("click",e=>{
  const d=e.target.closest("[data-download]");
  if(d){downloadLessons();return}
@@ -582,11 +580,7 @@ for(const id of ["wl","wr","awl","awr"])$(id).innerHTML=Array.from({length:9},(_
 for(const id of ["rbars","arbars"])$(id).innerHTML=Array.from({length:22},(_,k)=>'<i style="animation-delay:'+((k%7)*.1)+'s"></i>').join("");
 const sel=$("lg");Object.keys(LANGS).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=LANGS[k].name;sel.appendChild(o)});
 sel.value=lang;sel.onchange=()=>{lang=sel.value;SV("lang",lang)};
-$("home").addEventListener("click",e=>{
- const l=e.target.closest("[data-l]");if(l){openLesson(+l.dataset.l);return}
- const g=e.target.closest("[data-go]");if(g){g.dataset.go==="ask"?openAsk():openTest();return}
- const t=e.target.closest("[data-t]");if(t)tab(+t.dataset.t);
-});
+
 $("back").onclick=goHome;$("rback").onclick=goHome;$("rhome").onclick=goHome;
 $("rnext").onclick=()=>mode==="test"?openTest():openLesson(cur+1);
 $("mic").onclick=()=>{const s=steps[idx];if(!s||s.t!=="rep"||locked)return;if(rec){try{rec.stop()}catch(e){}}else startListen(s)};
