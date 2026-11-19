@@ -60,6 +60,41 @@ select{font:inherit;padding:10px;border-radius:12px;border:2px solid var(--pri2)
 .avrow{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px}
 .av{width:124px;height:124px;position:relative;border-radius:50%;padding:5px;background:linear-gradient(135deg,#c9bfff,#ffc9e3);flex:none}
 .av img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+
+/* Vaani mouth animation */
+.av {
+    position: relative;
+}
+
+.av .mouth {
+    position: absolute;
+    width: 13px;
+    height: 5px;
+    left: 50%;
+    top: 66%;
+    transform: translateX(-50%);
+    background: #9b4545;
+    border-radius: 50%;
+    opacity: 0;
+    z-index: 2;
+}
+
+.av.talking .mouth {
+    opacity: 1;
+    animation: mouthMove 0.25s infinite alternate;
+}
+
+@keyframes mouthMove {
+    from {
+        height: 3px;
+        width: 11px;
+    }
+    to {
+        height: 10px;
+        width: 13px;
+    }
+}
+
 /* Simple speech animation layered over the existing tutor image. */
 .av .mouth{position:absolute;left:58%;top:68%;width:19%;height:13%;border:2px solid #f4a0a9;border-radius:50%;background:#76233d;transform:scaleY(.12);transform-origin:center;pointer-events:none;transition:transform .12s ease}
 .av.talking .mouth{animation:talk-mouth .22s ease-in-out infinite alternate}
@@ -131,8 +166,10 @@ input{width:100%;font:inherit;font-size:1.2rem;padding:12px;border-radius:14px;b
 <div id="lesson" class="screen hide">
  <div class="lh"><button class="bk" id="back" aria-label="Back">‹</button><div><b id="ltitle">Vaani</b><small id="lsub">Your English tutor</small></div><span class="cnt" id="lcount"></span></div>
  <div class="bar"><i id="prog"></i></div>
- <div class="avrow"><div class="wave" id="wl"></div><div class="av" id="av"><img src="coach.webp" alt="Vaani"><span class="mouth" aria-hidden="true"></span></div><div class="wave" id="wr"></div></div>
- <div class="bubble"><div class="say" id="say"></div><div class="hi" id="hi"></div></div>
+ <div class="avrow"><div class="wave" id="wl"></div><div class="av" id="av">
+    <img src="coach.webp" alt="Vaani">
+    <span class="mouth"></span>
+</div>
  <div class="stage"><div class="pic" id="pic"></div><div class="word" id="word"></div></div>
  <div id="ctl"></div>
  <div class="ysc hide" id="ysCard"><small>You said</small><div id="ys"></div></div>
@@ -147,7 +184,10 @@ input{width:100%;font:inherit;font-size:1.2rem;padding:12px;border-radius:14px;b
 
 <div id="ask" class="screen hide">
  <div class="lh"><button class="bk" id="aback" aria-label="Back">‹</button><div><b>Ask Vaani</b><small>Ask questions by voice or text</small></div><span class="cnt"></span></div>
- <div class="avrow"><div class="wave" id="awl"></div><div class="av" id="aav"><img src="coach.webp" alt="Vaani"><span class="mouth" aria-hidden="true"></span></div><div class="wave" id="awr"></div></div>
+ <div class="avrow"><div class="wave" id="awl"></div><div class="av" id="aav">
+    <img src="coach.webp" alt="Vaani">
+    <span class="mouth"></span>
+</div><div class="wave" id="awr"></div></div>
  <div class="chat" id="chat"></div>
  <div class="chips" id="chips"></div>
  <div class="ysc hide" id="aysCard"><small>You said</small><div id="ays"></div></div>
@@ -260,7 +300,19 @@ const asha=s=>{const l=[],h=H(s);if(h&&s.t!=="tap")l.push({t:h,l:"hi"});if(s.en)
 function loadV(){voices=speechSynthesis.getVoices()}
 if("speechSynthesis" in window){loadV();speechSynthesis.onvoiceschanged=loadV}
 const vf=l=>{const v=voices.filter(x=>x.lang.toLowerCase().startsWith(l));return v.find(x=>/female|heera|veena|neerja|swara|zira|samantha|google/i.test(x.name))||v[0]};
-function setSpeaking(on){speaking=on;for(const id of ["av","wl","wr","aav","awl","awr"])$(id).classList.toggle("on",on);for(const id of ["av","aav"])$(id).classList.toggle("talking",on)}
+
+function setSpeaking(on){
+    speaking = on;
+
+    for(const id of ["av","wl","wr","aav","awl","awr"]){
+        $(id).classList.toggle("on", on);
+    }
+
+    for(const id of ["av","aav"]){
+        $(id).classList.toggle("talking", on);
+    }
+}
+
 function speak(list,cb){
  stopRec();
  if(!("speechSynthesis" in window)){cb&&cb();return}
@@ -298,7 +350,7 @@ function listenOnce(ui,h){
  U=ui;stopRec();if("speechSynthesis" in window)speechSynthesis.cancel();setSpeaking(false);
  const my=token;let handled=false;
  let finalText="";
- const r=new SR();rec=r;r.lang=recLang;r.interimResults=true;r.maxAlternatives=5;r.continuous=false;
+ const r=new SR();rec=r;r.lang = ui === UIS.ask ? LANGS[lang].v : recLang;r.interimResults=true;r.maxAlternatives=5;r.continuous=false;
  r.onstart=()=>{if(my!==token)return;setRec(true);$(ui.card).classList.remove("hide");$(ui.ys).textContent="Listening… speak clearly now.";fbMsg("Listening…",true,ui.fb)};
  r.onresult=e=>{if(my!==token)return;let interim="";for(let i=e.resultIndex;i<e.results.length;i++){const result=e.results[i];const alternatives=[...result].map(a=>a.transcript.trim()).filter(Boolean);if(result.isFinal&&alternatives.length){finalText=alternatives[0];if(!handled){handled=true;h.final(alternatives)}}else if(alternatives.length){interim=alternatives[0]}}if(!handled&&interim)$(ui.ys).textContent=interim;if(finalText)$(ui.ys).textContent=finalText};
  r.onerror=e=>{if(handled||my!==token||e.error==="aborted")return;handled=true;micFails++;if(e.error==="language-not-supported")recLang="en-US";
@@ -473,30 +525,240 @@ $("rstop").onclick=()=>{try{rec&&rec.stop()}catch(e){}};
 $("kb").onclick=()=>{const s=steps[idx];if(s&&s.t==="rep"&&!locked){stopRec();openType(s)}};
 $("bulb").onclick=()=>{const s=steps[idx];if(!s)return;const t=s.say||s.en||s.q;if(s.silent)return;speak([{t:t,l:"en"}],()=>{if(s.t==="rep"&&!locked)startListen(s)})};
 /* ---- Ask Vaani ---- */
-function addMsg(who,html){const c=$("chat"),d=document.createElement("div");d.className="msg "+who;d.innerHTML=html;c.appendChild(d);c.scrollTop=c.scrollHeight}
-function renderAns(a){let h=esc(a.text);if(a.tiles)a.tiles.forEach((L,i)=>{h+='<div class="tiles">'+(a.words&&a.words.length>1?'<span>'+esc(a.words[i])+'</span>':'')+L.map(x=>'<b>'+x+'</b>').join("")+'</div>'});return h}
-function sendAsk(q){q=q.trim();if(!q)return;addMsg("me",esc(q));const a=answer(q,{now:new Date(),pics:PICS});addMsg("v",renderAns(a));
- $("afb").textContent="";speak(a.say.map(x=>({t:x.t,r:x.r,l:"en"})))}
-function askListen(){
- const typeBox=()=>$("atype").classList.remove("hide");
- if(!SR){fbMsg("Listening works in the Chrome browser. Please type your question.",false,"afb");typeBox();return}
- if(!navigator.onLine){fbMsg("You are offline. Listening needs internet, so please type your question.",false,"afb");typeBox();return}
- listenOnce(UIS.ask,{final:alts=>{micFails=0;sendAsk(alts[0])},fail:()=>{if(micFails>=2)typeBox()}});
+
+/* ---- Vaani AI Tutor ---- */
+
+let askHistory = [];
+let askBusy = false;
+
+function addMsg(who, html) {
+    const c = $("chat");
+    const d = document.createElement("div");
+
+    d.className = "msg " + who;
+    d.innerHTML = html;
+
+    c.appendChild(d);
+    c.scrollTop = c.scrollHeight;
 }
-function openAsk(){
- token++;U=UIS.ask;micFails=0;show_("ask");
- if(!$("chat").children.length)addMsg("v","Hi! I am Vaani. You can ask me about spelling, pronunciation, time, dates and your English lessons. Tap 🎤 to speak or ⌨️ to type.");
- $("chips").innerHTML=["How do you spell water?","Say thank you","What day is today?","Count to ten"].map(t=>'<button class="chip">'+t+'</button>').join("");
- ensureMic();
+
+function renderAns(a) {
+    let h = esc(a.text);
+
+    if (a.tiles) {
+        a.tiles.forEach((L, i) => {
+            h += '<div class="tiles">' +
+                (a.words && a.words.length > 1
+                    ? '<span>' + esc(a.words[i]) + '</span>'
+                    : '') +
+                L.map(x => '<b>' + esc(x) + '</b>').join("") +
+                '</div>';
+        });
+    }
+
+    return h;
 }
-$("chips").addEventListener("click",e=>{if(e.target.classList.contains("chip"))sendAsk(e.target.textContent)});
-$("aback").onclick=goHome;
-$("amic").onclick=()=>{if(rec){try{rec.stop()}catch(e){}}else askListen()};
-$("arstop").onclick=()=>{try{rec&&rec.stop()}catch(e){}};
-$("akb").onclick=()=>{$("atype").classList.toggle("hide");$("ain").focus()};
-$("asend").onclick=()=>{sendAsk($("ain").value);$("ain").value=""};
-$("ain").onkeydown=e=>{if(e.key==="Enter"){sendAsk($("ain").value);$("ain").value=""}};
-$("abulb").onclick=()=>sendAsk("help");
+
+async function sendAsk(q) {
+    q = q.trim();
+
+    if (!q || askBusy) return;
+
+    addMsg("me", esc(q));
+    $("afb").textContent = "";
+
+    // Offline mode: use Vaani's built-in learning answers.
+    if (!navigator.onLine) {
+        const a = answer(q, {
+            now: new Date(),
+            pics: PICS
+        });
+
+        addMsg("v", renderAns(a));
+        speak(a.say.map(x => ({
+            t: x.t,
+            r: x.r,
+            l: "en"
+        })));
+
+        return;
+    }
+
+    askBusy = true;
+    $("amic").disabled = true;
+
+    addMsg("v", "Vaani is thinking...");
+
+    try {
+        const response = await fetch("/api/tutor", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                question: q,
+                history: askHistory
+            })
+        });
+
+        const data = await response.json();
+
+        // Remove the temporary thinking message.
+        const chat = $("chat");
+        if (chat.lastElementChild &&
+            chat.lastElementChild.classList.contains("v")) {
+            chat.lastElementChild.remove();
+        }
+
+        if (!response.ok) {
+            throw new Error(data.error || "Tutor unavailable");
+        }
+
+        const text = data.answer;
+
+        addMsg("v", esc(text));
+
+        askHistory.push(
+            { role: "user", content: q },
+            { role: "assistant", content: text }
+        );
+
+        // Keep only the latest conversation turns.
+        askHistory = askHistory.slice(-10);
+
+        speak([{ t: text, l: "en" }]);
+
+    } catch (error) {
+        const chat = $("chat");
+
+        if (chat.lastElementChild &&
+            chat.lastElementChild.classList.contains("v")) {
+            chat.lastElementChild.remove();
+        }
+
+        addMsg(
+            "v",
+            "I couldn't connect to my online tutor. " +
+            "Please check your internet connection and try again."
+        );
+
+        $("afb").textContent = error.message;
+
+    } finally {
+        askBusy = false;
+        $("amic").disabled = false;
+    }
+}
+
+function askListen() {
+    if (!SR) {
+        fbMsg(
+            "Speech recognition is not supported here. Please type your question.",
+            false,
+            "afb"
+        );
+
+        $("atype").classList.remove("hide");
+        return;
+    }
+
+    if (!navigator.onLine) {
+        fbMsg(
+            "You are offline. You can type a basic question instead.",
+            false,
+            "afb"
+        );
+
+        $("atype").classList.remove("hide");
+        return;
+    }
+
+    listenOnce(UIS.ask, {
+        final: alts => {
+            micFails = 0;
+            if (alts.length) sendAsk(alts[0]);
+        },
+
+        fail: () => {
+            $("atype").classList.remove("hide");
+        }
+    });
+}
+
+function openAsk() {
+    token++;
+    U = UIS.ask;
+    micFails = 0;
+
+    show_("ask");
+
+    if (!$("chat").children.length) {
+        addMsg(
+            "v",
+            "Hello! I am Vaani, your English tutor. " +
+            "You can ask me about grammar, vocabulary, " +
+            "pronunciation, translation or spoken English. " +
+            "Tap the microphone and speak!"
+        );
+    }
+
+    $("chips").innerHTML = [
+        "Explain is, am and are",
+        "Correct my English sentence",
+        "How do I introduce myself?",
+        "What does beautiful mean?",
+        "Translate hello into Marathi"
+    ].map(t =>
+        '<button class="chip">' + esc(t) + '</button>'
+    ).join("");
+
+    ensureMic();
+}
+
+
+$("chips").addEventListener("click", e => {
+    if (e.target.classList.contains("chip")) {
+        sendAsk(e.target.textContent);
+    }
+});
+
+$("aback").onclick = goHome;
+
+$("amic").onclick = () => {
+    if (rec) {
+        try { rec.stop(); } catch (e) {}
+    } else {
+        askListen();
+    }
+};
+
+$("arstop").onclick = () => {
+    try { rec && rec.stop(); } catch (e) {}
+};
+
+$("akb").onclick = () => {
+    $("atype").classList.toggle("hide");
+    $("ain").focus();
+};
+
+$("asend").onclick = () => {
+    const value = $("ain").value;
+    $("ain").value = "";
+    sendAsk(value);
+};
+
+$("ain").onkeydown = e => {
+    if (e.key === "Enter") {
+        const value = $("ain").value;
+        $("ain").value = "";
+        sendAsk(value);
+    }
+};
+
+$("abulb").onclick = () => {
+    sendAsk("What can you teach me?");
+};
+
 function toHome(){const sp=$("splash");if(!sp)return;sp.classList.add("out");setTimeout(()=>{sp.remove();goHome()},450)}
 setTimeout(toHome,2600);$("splash").onclick=toHome;
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
