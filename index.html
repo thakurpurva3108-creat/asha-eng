@@ -572,74 +572,45 @@ function renderAns(a) {
     return h;
 }
 
+
 async function sendAsk(q) {
     q = q.trim();
 
     if (!q || askBusy) return;
 
+    askBusy = true;
+    $("amic").disabled = true;
+
     addMsg("me", esc(q));
     $("afb").textContent = "";
 
-    // Offline mode: use Vaani's built-in learning answers.
-    if (!navigator.onLine) {
+    addMsg("v", "Vaani is thinking...");
+
+    try {
+        // Use Vaani's built-in tutor.
+        // No API key or backend server required.
         const a = answer(q, {
             now: new Date(),
             pics: PICS
         });
 
-        addMsg("v", renderAns(a));
-        speak(a.say.map(x => ({
-            t: x.t,
-            r: x.r,
-            l: "en"
-        })));
-
-        return;
-    }
-
-    askBusy = true;
-    $("amic").disabled = true;
-
-    addMsg("v", "Vaani is thinking...");
-
-    try {
-        const response = await fetch("/api/tutor", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                question: q,
-                history: askHistory
-            })
-        });
-
-        const data = await response.json();
-
         // Remove the temporary thinking message.
         const chat = $("chat");
+
         if (chat.lastElementChild &&
             chat.lastElementChild.classList.contains("v")) {
             chat.lastElementChild.remove();
         }
 
-        if (!response.ok) {
-            throw new Error(data.error || "Tutor unavailable");
+        addMsg("v", renderAns(a));
+
+        if (a.say && Array.isArray(a.say)) {
+            speak(a.say.map(x => ({
+                t: x.t,
+                r: x.r,
+                l: "en"
+            })));
         }
-
-        const text = data.answer;
-
-        addMsg("v", esc(text));
-
-        askHistory.push(
-            { role: "user", content: q },
-            { role: "assistant", content: text }
-        );
-
-        // Keep only the latest conversation turns.
-        askHistory = askHistory.slice(-10);
-
-        speak([{ t: text, l: "en" }]);
 
     } catch (error) {
         const chat = $("chat");
@@ -649,11 +620,7 @@ async function sendAsk(q) {
             chat.lastElementChild.remove();
         }
 
-        addMsg(
-            "v",
-            "I couldn't connect to my online tutor. " +
-            "Please check your internet connection and try again."
-        );
+        addMsg("v", "Sorry! I couldn't prepare an answer. Please try another question.");
 
         $("afb").textContent = error.message;
 
