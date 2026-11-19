@@ -537,7 +537,7 @@ async function downloadLessons() {
 
         const cache = await caches.open("vaani-v4");
 
-        await cache.addAll([
+                await cache.addAll([
             "./",
             "./index.html",
             "./lessons.js",
@@ -547,7 +547,7 @@ async function downloadLessons() {
             "./icon-192.png",
             "./icon-512.png",
             "./icon-maskable-512.png"
-        ]
+        ]);
         if (status) {
             status.textContent = "✓ Lessons downloaded! You can now learn offline.";
         }
@@ -560,7 +560,7 @@ async function downloadLessons() {
         if (button) button.disabled = false;
     }
 }
-);
+
  $("t1").innerHTML=h;
  const ready=!!buildTest(poolOf(done,LESSONS));
  $("home").addEventListener("click",e=>{
