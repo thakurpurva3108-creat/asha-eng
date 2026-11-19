@@ -508,18 +508,69 @@ function renderHome(){
   '<div class="stats"><div class="card"><b>'+n+'/'+total+'</b><small>Lessons done</small></div><div class="card"><b>'+(n?avg+"%":"–")+'</b><small>Average score</small></div><div class="card"><b>'+(best?best+"%":"–")+'</b><small>Best test</small></div></div>'+
   '<div class="askcard"><div><h3>Ask Vaani</h3><p>Ask Vaani about spelling, pronunciation and your lessons.</p></div><button data-go="ask">Ask 🎙️</button></div>'+
   '<div class="testcard"><div><h3>Test yourself</h3><p>Check what you have learned.</p></div><button data-go="test">Take a test</button></div>'+
-  '<div class="card"><h3>Your progress</h3>'+chart()+'</div>';
+'<div class="card"><h3>Offline Lessons</h3><p>Download your lessons to learn without an internet connection.</p><button class="gold" data-download>⬇ Download Lessons</button><small id="downloadStatus" aria-live="polite"></small></div>'+
+'<div class="card"><h3>Your progress</h3>'+chart()+'</div>';
  let h="";LESSONS.forEach((l,i)=>{
   if(i%5===0)h+='<h3 class="unit">Unit '+(i/5+1)+' · '+UNITS[i/5]+'</h3>';
   const c=UCOL[Math.floor(i/5)%UCOL.length];
   h+='<button class="item" data-l="'+i+'"><span class="n" style="background:'+c+'">'+(i+1)+'</span><span class="t">'+title(i)+'<small>'+(done[i]!=null?"Score "+done[i]+"%":"Tap to start")+'</small></span><span class="s">'+(done[i]!=null?"✅":"▶️")+'</span></button>';
- });
+ }
+async function downloadLessons() {
+    const status = $("downloadStatus");
+    const button = document.querySelector("[data-download]");
+
+    if (status) status.textContent = "Preparing your lessons...";
+    if (button) button.disabled = true;
+
+    try {
+        if (!("serviceWorker" in navigator) || !("caches" in window)) {
+            throw new Error("Offline storage is not supported by this browser.");
+        }
+
+        await navigator.serviceWorker.ready;
+
+        const cache = await caches.open("vaani-v4");
+
+        await cache.addAll([
+            "./",
+            "./index.html",
+            "./lessons.js",
+            "./manifest.webmanifest",
+            "./logo.webp",
+            "./coach.webp",
+            "./icon-192.png",
+            "./icon-512.png",
+            "./icon-maskable-512.png"
+        ]);
+
+        if (status) {
+            status.textContent = "✓ Lessons downloaded! You can now learn offline.";
+        }
+
+    } catch (error) {
+        if (status) {
+            status.textContent = "Download failed: " + error.message;
+        }
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+);
  $("t1").innerHTML=h;
  const ready=!!buildTest(poolOf(done,LESSONS));
- $("t2").innerHTML='<div class="card"><h3>Vaani\'s Test</h3><p class="mute" style="margin:6px 0 12px">10 questions from the lessons you have finished: 5 listening, 3 spelling and 2 speaking.</p>'+
-  (ready?'<button data-go="test" style="width:100%">Start test ▶</button>':'<p class="warn">Finish Lesson 1 first, then your test unlocks.</p><button data-l="0" style="width:100%">Go to Lesson 1</button>')+'</div>'+
-  (best?'<div class="card"><h3>Your best score</h3><div class="bigp">'+best+'%</div></div>':'');
-}
+ $("home").addEventListener("click",e=>{
+ const d=e.target.closest("[data-download]");
+ if(d){downloadLessons();return}
+
+ const l=e.target.closest("[data-l]");
+ if(l){openLesson(+l.dataset.l);return}
+
+ const g=e.target.closest("[data-go]");
+ if(g){g.dataset.go==="ask"?openAsk():openTest();return}
+
+ const t=e.target.closest("[data-t]");
+ if(t)tab(+t.dataset.t);
+});
 
 /* ---- wiring ---- */
 for(const id of ["wl","wr","awl","awr"])$(id).innerHTML=Array.from({length:9},(_,k)=>'<i style="animation-delay:'+((k%5)*.12)+'s"></i>').join("");
