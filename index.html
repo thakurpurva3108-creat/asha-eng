@@ -261,39 +261,320 @@ const LET={a:"ay",b:"bee",c:"see",d:"dee",e:"ee",f:"eff",g:"jee",h:"aitch",i:"ey
 const DAYN=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],MONN=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const norm=q=>q.toLowerCase().replace(/[?!.,"“”]/g," ").replace(/\s+/g," ").trim();
 // Vaani's offline brain: she understands a fixed set of questions (no internet needed).
-function answer(q,ctx){
- const n=norm(q),now=ctx.now;let m;
- const say=(t,r)=>[{t:t,r:r}];
- if(!n)return{text:"I did not hear a question. Please try again.",say:say("I did not hear a question. Please try again.")};
- if(/\bwhat time\b|\btime is it\b|\bthe time\b/.test(n)){const h=now.getHours()%12||12,mi=String(now.getMinutes()).padStart(2,"0"),t="It is "+h+":"+mi+" "+(now.getHours()<12?"AM":"PM")+".";return{text:t,say:say(t)}}
- if(/\b(day|date)\b/.test(n)&&/\b(today|tomorrow|yesterday|what day|what date)\b/.test(n)){
-  const off=/tomorrow/.test(n)?1:/yesterday/.test(n)?-1:0,d=new Date(now.getTime()+off*864e5);
-  const t=(off===1?"Tomorrow is ":off===-1?"Yesterday was ":"Today is ")+DAYN[d.getDay()]+", "+d.getDate()+" "+MONN[d.getMonth()]+" "+d.getFullYear()+".";
-  return{text:t,say:say(t)}}
- m=n.match(/\b(first|last) letter (?:of|in) (?:the word )?([a-z]+)/);
- if(m){const w=m[2],l=m[1]==="first"?w[0]:w[w.length-1];return{text:"The "+m[1]+" letter of “"+w+"” is "+l.toUpperCase()+".",tiles:[[l.toUpperCase()]],say:say("The "+m[1]+" letter of "+w+" is "+LET[l]+".")}}
- m=n.match(/\bspell(?:ing)?\b(?:\s+(?:of|for|the|word|me|out))*\s+(.+)$/);
- if(m){
-  const words=m[1].replace(/\b(please|for me|in english|correctly|word)\b/g," ").split(/\s+/).map(w=>w.replace(/[^a-z]/g,"")).filter(Boolean).slice(0,4);
-  if(words.length){const sy=[];words.forEach(w=>sy.push({t:w,r:.75},{t:w.split("").map(x=>LET[x]).join(", "),r:.6},{t:w,r:.8}));
-   return{text:words.length>1?"Here is the spelling:":"Here is how you spell “"+words[0]+"”:",words:words,tiles:words.map(w=>w.toUpperCase().split("")),say:sy}}}
- if(/\bspell(?:ing)?\b/.test(n))return{text:"Which word should I spell? Say: spell water.",say:say("Which word should I spell? Say, spell water.")};
- m=n.match(/^(?:please )?(?:say|pronounce|repeat)\s+(?:the word\s+)?(.+)$/)||n.match(/\bhow (?:do you|do i|to|can i) (?:say|pronounce)\s+(.+)$/);
- if(m){const p=m[1].replace(/\b(please|in english)\b/g,"").trim();if(p&&p.length<=60)return{text:"Say it like this: “"+p+"”",say:[{t:p,r:.6},{t:p,r:.85}]}}
- m=n.match(/\bcount (?:from \w+ )?to (\w+)/);
- if(m){const k=/^\d+$/.test(m[1])?+m[1]:NW.indexOf(m[1]);
-  if(k>=1&&k<=20){const L=Array.from({length:k},(_,i)=>i+1);return{text:L.join(", "),say:say(L.map(x=>NW[x]).join(", "),.7)}}
-  return{text:"I can count up to twenty. Try: count to ten.",say:say("I can count up to twenty. Try, count to ten.")}}
- if(/^(hi|hello|hey|namaste|good morning|good evening)\b/.test(n)){const t="Hello! I am Vaani. Ask me to spell a word, say a word, or tell you the day.";return{text:t,say:say(t)}}
- if(/\bthank/.test(n))return{text:"You are welcome!",say:say("You are welcome!")};
- if(/\bwho are you\b|\byour name\b/.test(n)){const t="I am Vaani, your English tutor.";return{text:t,say:say(t)}}
- if(/\bhelp\b|what can you do|what can i ask/.test(n)){const t="I can spell a word, say a word slowly, tell you the day or the time, count, and show the words from your lessons.";return{text:t+" Try: How do you spell water?",say:say(t)}}
- m=n.match(/^(?:what(?: is|s| does)|meaning of|what do you mean by)\s+(?:a |an |the )?([a-z ]+?)(?: mean| means)?$/);
- if(m){const w=m[1].trim(),pic=(ctx.pics||{})[w];
-  if(pic)return{text:"“"+w+"” "+pic+" Say it with me:",say:[{t:w,r:.7},{t:w,r:.85}]};
-  return{text:"I do not know the meaning of “"+w+"” yet. I can spell it or say it slowly. Try: spell "+w+".",say:say("I do not know that word yet. I can spell it or say it slowly.")}}
- return{text:"I can help with spelling, saying words slowly, the day and time, counting, and the words in your lessons. Try: “How do you spell water?”",say:say("I can help with spelling, saying words slowly, the day and time, and counting. Try asking, how do you spell water.")};
+
+function answer(q, ctx) {
+  const n = norm(q);
+  const now = ctx.now;
+  let m;
+
+  const say = (t, r) => [{ t: t, r: r }];
+  const reply = (t) => ({ text: t, say: say(t) });
+
+  if (!n) {
+    return reply("Please type a question. I am ready to help you learn English!");
+  }
+
+  // 1. TIME
+  if (/\bwhat time\b|\btime is it\b|\bthe time\b/.test(n)) {
+    const h = now.getHours() % 12 || 12;
+    const mi = String(now.getMinutes()).padStart(2, "0");
+    const t = "It is " + h + ":" + mi + " " +
+      (now.getHours() < 12 ? "AM" : "PM") + ".";
+    return reply(t);
+  }
+
+  // 2. DATE AND DAY
+  if (/\b(day|date)\b/.test(n) &&
+      /\b(today|tomorrow|yesterday|what day|what date)\b/.test(n)) {
+    const off = /tomorrow/.test(n) ? 1 :
+      /yesterday/.test(n) ? -1 : 0;
+    const d = new Date(now.getTime() + off * 864e5);
+    const t = (off === 1 ? "Tomorrow is " :
+      off === -1 ? "Yesterday was " : "Today is ") +
+      DAYN[d.getDay()] + ", " + d.getDate() + " " +
+      MONN[d.getMonth()] + " " + d.getFullYear() + ".";
+    return reply(t);
+  }
+
+  // 3. FIRST OR LAST LETTER
+  m = n.match(/\b(first|last) letter (?:of|in) (?:the word )?([a-z]+)/);
+  if (m) {
+    const w = m[2];
+    const l = m[1] === "first" ? w[0] : w[w.length - 1];
+    return {
+      text: "The " + m[1] + " letter of " + w +
+        " is " + l.toUpperCase() + ".",
+      tiles: [[l.toUpperCase()]],
+      say: say("The " + m[1] + " letter of " + w + " is " + LET[l] + ".")
+    };
+  }
+
+  // 4. SPELLING
+  m = n.match(/\bspell(?:ing)?\b(?:\s+(?:of|for|the|word|me|out))*\s+(.+)$/);
+  if (m) {
+    const words = m[1]
+      .replace(/\b(please|for me|in english|correctly|word)\b/g, " ")
+      .split(/\s+/)
+      .map(w => w.replace(/[^a-z]/g, ""))
+      .filter(Boolean)
+      .slice(0, 4);
+
+    if (words.length) {
+      const sy = [];
+      words.forEach(w => {
+        sy.push({ t: w, r: .75 });
+        sy.push({ t: w.split("").map(x => LET[x]).join(", "), r: .6 });
+        sy.push({ t: w, r: .8 });
+      });
+
+      return {
+        text: "Here is how you spell " + words.join(", ") + ":",
+        words: words,
+        tiles: words.map(w => w.toUpperCase().split("")),
+        say: sy
+      };
+    }
+  }
+
+  // 5. PRONUNCIATION
+  m = n.match(/^(?:please )?(?:say|pronounce|repeat)\s+(?:the word\s+)?(.+)$/) ||
+      n.match(/\bhow (?:do you|do i|to|can i) (?:say|pronounce)\s+(.+)$/);
+
+  if (m) {
+    const p = m[1].replace(/\b(please|in english)\b/g, "").trim();
+    if (p && p.length <= 60) {
+      return {
+        text: "Say it like this: " + p,
+        say: [{ t: p, r: .6 }, { t: p, r: .85 }]
+      };
+    }
+  }
+
+  // 6. COUNTING
+  m = n.match(/\bcount (?:from \w+ )?to (\w+)/);
+  if (m) {
+    const k = /^\d+$/.test(m[1]) ? +m[1] : NW.indexOf(m[1]);
+    if (k >= 1 && k <= 20) {
+      const L = Array.from({ length: k }, (_, i) => i + 1);
+      return {
+        text: L.join(", "),
+        say: say(L.map(x => NW[x]).join(", "), .7)
+      };
+    }
+    return reply("I can count up to twenty. Try: count to ten.");
+  }
+
+  // 7. GREETINGS
+  if (/^(hi|hello|hey|namaste|good morning|good evening)\b/.test(n)) {
+    return reply("Hello! I am Vaani, your English learning assistant. What would you like to learn today?");
+  }
+
+  if (/\bthank/.test(n)) {
+    return reply("You are welcome! Keep practising your English.");
+  }
+
+  if (/\bwho are you\b|\byour name\b/.test(n)) {
+    return reply("I am Vaani, your English learning assistant. I can help you practise English.");
+  }
+
+  // 8. HELP
+  if (/\bhelp\b|what can you do|what can i ask/.test(n)) {
+    return reply(
+      "I can help you with spelling, pronunciation, word meanings, " +
+      "grammar, tenses, synonyms, antonyms and sentence examples. " +
+      "Try asking: What is a noun?"
+    );
+  }
+
+  // 9. BASIC GRAMMAR EXPLANATIONS
+  const grammar = {
+    "noun": "A noun is the name of a person, place, animal or thing. Examples: teacher, Mumbai, dog and book.",
+    "pronoun": "A pronoun is a word used instead of a noun. Examples: he, she, it, they and we.",
+    "verb": "A verb is an action or state word. Examples: run, eat, write, is and are.",
+    "adjective": "An adjective describes a noun or pronoun. Examples: beautiful, tall, happy and intelligent.",
+    "adverb": "An adverb describes a verb, adjective or another adverb. Examples: slowly, quickly and carefully.",
+    "preposition": "A preposition shows the relationship between words. Examples: in, on, under, behind and between.",
+    "conjunction": "A conjunction joins words or sentences. Examples: and, but, because and or.",
+    "article": "Articles are words used before nouns. The three articles are a, an and the.",
+    "pronunciation": "Pronunciation means the way a word is spoken. Practising words aloud can help improve your speaking skills.",
+    "grammar": "Grammar is the set of rules that helps us form correct words, phrases and sentences in a language."
+  };
+
+  m = n.match(/(?:what is|what are|explain|define|meaning of)\s+(?:a |an |the )?(noun|pronoun|verb|adjective|adverb|preposition|conjunction|article|pronunciation|grammar)\b/);
+
+  if (m && grammar[m[1]]) {
+    return reply(grammar[m[1]]);
+  }
+
+  // 10. TENSES
+  if (/\b(simple present|present simple|present tense)\b/.test(n)) {
+    return reply(
+      "The simple present tense describes habits, routines and general facts. " +
+      "Example: I go to college every day. She plays cricket."
+    );
+  }
+
+  if (/\b(present continuous|continuous present)\b/.test(n)) {
+    return reply(
+      "The present continuous tense describes an action happening now. " +
+      "It uses am, is or are with a verb ending in ing. Example: I am studying."
+    );
+  }
+
+  if (/\b(simple past|past simple|past tense)\b/.test(n)) {
+    return reply(
+      "The simple past tense describes an action that happened in the past. " +
+      "Example: I visited my friend yesterday."
+    );
+  }
+
+  if (/\b(past continuous|continuous past)\b/.test(n)) {
+    return reply(
+      "The past continuous tense describes an action that was happening at a particular time in the past. " +
+      "Example: I was studying."
+    );
+  }
+
+  if (/\b(simple future|future simple|future tense)\b/.test(n)) {
+    return reply(
+      "The simple future tense describes an action that will happen later. " +
+      "It commonly uses will with the base form of a verb. Example: I will study tomorrow."
+    );
+  }
+
+  if (/\b(tenses|what is tense|types of tense)\b/.test(n)) {
+    return reply(
+      "There are three main tenses in English: present, past and future. " +
+      "Each tense has four commonly taught forms: simple, continuous, perfect and perfect continuous."
+    );
+  }
+
+  // 11. SYNONYMS
+  const synonyms = {
+    happy: "glad, joyful, cheerful",
+    sad: "unhappy, upset, sorrowful",
+    big: "large, huge, enormous",
+    small: "little, tiny, miniature",
+    beautiful: "pretty, lovely, attractive",
+    smart: "clever, intelligent, bright",
+    fast: "quick, rapid, speedy",
+    easy: "simple, effortless, straightforward",
+    difficult: "hard, challenging, tough",
+    begin: "start, commence",
+    end: "finish, complete",
+    angry: "mad, annoyed, irritated",
+    brave: "courageous, fearless, bold"
+  };
+
+  m = n.match(/(?:synonyms? of|synonyms? for|words similar to)\s+([a-z]+)/);
+  if (m && synonyms[m[1]]) {
+    return reply("Some synonyms of " + m[1] + " are: " + synonyms[m[1]] + ".");
+  }
+
+  // 12. ANTONYMS
+  const antonyms = {
+    happy: "sad",
+    big: "small",
+    hot: "cold",
+    fast: "slow",
+    easy: "difficult",
+    beautiful: "ugly",
+    strong: "weak",
+    rich: "poor",
+    old: "young or new",
+    early: "late",
+    open: "closed",
+    begin: "end",
+    brave: "cowardly",
+    clean: "dirty",
+    light: "dark or heavy"
+  };
+
+  m = n.match(/(?:antonyms? of|antonyms? for|opposite of)\s+([a-z]+)/);
+  if (m && antonyms[m[1]]) {
+    return reply("The opposite of " + m[1] + " is " + antonyms[m[1]] + ".");
+  }
+
+  // 13. EXAMPLE SENTENCES
+  const examples = {
+    happy: "I am happy today.",
+    beautiful: "The garden is beautiful.",
+    intelligent: "She is an intelligent student.",
+    brave: "The brave girl helped her friend.",
+    honest: "An honest person always speaks the truth.",
+    school: "I go to school every day.",
+    learn: "I want to learn English.",
+    respect: "We should respect everyone.",
+    confident: "I feel confident when I speak English.",
+    friendship: "Friendship is important in our lives."
+  };
+
+  m = n.match(/(?:sentence (?:with|using)|use)\s+([a-z]+)\s+(?:in a sentence|in sentence)/) ||
+      n.match(/(?:give|show|make)\s+(?:me )?(?:an? )?example (?:sentence )?(?:with|using)\s+([a-z]+)/);
+
+  if (m && examples[m[1]]) {
+    return reply("Here is an example: " + examples[m[1]]);
+  }
+
+  // 14. WORD MEANINGS
+  const meanings = {
+    happy: "feeling pleasure or joy",
+    beautiful: "pleasing to look at",
+    intelligent: "having the ability to learn and understand things",
+    brave: "showing courage when facing difficulty or danger",
+    honest: "always telling the truth and not cheating",
+    confident: "believing in your own abilities",
+    curious: "wanting to know or learn something",
+    friendship: "a close and caring relationship between friends",
+    respect: "showing care and consideration for others",
+    kindness: "the quality of being friendly and helpful",
+    grateful: "feeling thankful",
+    success: "achieving a goal or a desired result",
+    education: "the process of learning and gaining knowledge",
+    opportunity: "a suitable chance to do something",
+    improve: "to become better or make something better",
+    encourage: "to give someone support or confidence"
+  };
+
+  m = n.match(/^(?:what(?: is|s| does)|meaning of|define|what do you mean by)\s+(?:a |an |the )?([a-z]+)(?: mean| means)?$/);
+
+  if (m) {
+    const w = m[1];
+    const pic = (ctx.pics || {})[w];
+
+    if (pic) {
+      return {
+        text: w + " means: " + pic,
+        say: [{ t: w, r: .7 }, { t: w, r: .85 }]
+      };
+    }
+
+    if (meanings[w]) {
+      return reply("The meaning of " + w + " is: " + meanings[w] + ".");
+    }
+
+    return reply(
+      "I do not have the meaning of " + w +
+      " in my current vocabulary list yet. Try another word."
+    );
+  }
+
+  // 15. SENTENCE FORMATION
+  if (/how to make a sentence|how to form a sentence|sentence structure/.test(n)) {
+    return reply(
+      "A basic English sentence usually follows Subject + Verb + Object. " +
+      "For example: She reads a book. Here, She is the subject, reads is the verb and a book is the object."
+    );
+  }
+
+  // 16. FALLBACK
+  return reply(
+    "That is an interesting question! I can currently help with English grammar, " +
+    "tenses, word meanings, synonyms, antonyms, spelling, pronunciation and sentence examples. " +
+    "Try asking: What is a noun?"
+  );
 }
+
 //#ENDPURE
 
 let lang=LS("lang","hi"),done=LS("done",{}),hist=LS("hist",[]),best=LS("best",0);
