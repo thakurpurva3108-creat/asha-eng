@@ -385,6 +385,157 @@ function answer(q, ctx) {
       "Try asking: What is a noun?"
     );
   }
+    
+  
+  // 8A. SELF INTRODUCTION
+  if (/introduce myself|self introduction|how do i introduce|how can i introduce/.test(n)) {
+    return reply(
+      "You can introduce yourself by sharing your name, city, " +
+      "education and interests. Example: Hello! My name is [your name]. " +
+      "I am from [your city]. I am a student. I enjoy learning new things. " +
+      "My hobbies are reading and listening to music. Nice to meet you!"
+    );
+  }
+
+  // 8B. IS, AM AND ARE
+  if (/\b(is|am|are)\b/.test(n) &&
+      /\b(explain|difference|use|uses|when|meaning|what|how)\b/.test(n)) {
+    return reply(
+      "Is, am and are are forms of the verb 'to be'. " +
+      "AM is used with I: I am a student. " +
+      "IS is used with he, she, it and singular names: She is happy. " +
+      "ARE is used with you, we, they and plural nouns: They are students. " +
+      "Remember: I am, He is, She is, It is, You are, We are, They are."
+    );
+  }
+
+  // 8C. DO AND DOES
+  if (/\b(do|does)\b/.test(n) &&
+      /\b(explain|difference|use|uses|when|what|how)\b/.test(n)) {
+    return reply(
+      "Do and does are used in questions and negative sentences in the simple present tense. " +
+      "Use DO with I, you, we and they. Example: Do you play cricket? " +
+      "Use DOES with he, she and it. Example: Does she study English? " +
+      "Examples of negatives: I do not know. She does not know."
+    );
+  }
+
+  // 8D. HAS AND HAVE
+  if (/\b(has|have)\b/.test(n) &&
+      /\b(explain|difference|use|uses|when|what|how)\b/.test(n)) {
+    return reply(
+      "Has and have show possession or something someone owns. " +
+      "Use HAS with he, she and it. Example: She has a book. " +
+      "Use HAVE with I, you, we and they. Example: I have a pen. " +
+      "Remember: He has, She has, I have, You have, We have, They have."
+    );
+  }
+
+  // 8E. A, AN AND THE
+  if (/\b(a an the|articles|article)\b/.test(n) &&
+      /\b(explain|difference|use|uses|what|how)\b/.test(n)) {
+    return reply(
+      "A, an and the are articles. Use A before a consonant sound, " +
+      "for example, a book and a university. Use AN before a vowel sound, " +
+      "for example, an apple and an hour. Use THE for a particular person " +
+      "or thing, for example, the Sun and the book on the table."
+    );
+  }
+
+  // 8F. SINGULAR AND PLURAL
+  if (/singular and plural|plural form|make .* plural/.test(n)) {
+    return reply(
+      "A singular noun refers to one person or thing. A plural noun refers to more than one. " +
+      "Usually, we add S or ES to make a noun plural. " +
+      "Examples: book becomes books, box becomes boxes, and class becomes classes. " +
+      "Some plurals are irregular: child becomes children and man becomes men."
+    );
+  }
+
+  // 8G. QUESTION WORDS
+  if (/question words|wh questions|what are wh|what is wh/.test(n)) {
+    return reply(
+      "Common question words are: WHO asks about a person, WHAT asks about a thing, " +
+      "WHERE asks about a place, WHEN asks about time, WHY asks for a reason, " +
+      "and HOW asks about the way something happens. " +
+      "Examples: Who are you? What is your name? Where do you live? " +
+      "When is your class? Why are you happy? How are you?"
+    );
+  }
+
+  // 8H. EVERYDAY ENGLISH CONVERSATION
+  if (/daily conversation|everyday conversation|daily use english|daily use sentences/.test(n)) {
+    return reply(
+      "Here are some useful everyday English sentences: " +
+      "How are you? I am fine, thank you. " +
+      "What are you doing? I am studying. " +
+      "Could you please help me? Thank you very much. " +
+      "Excuse me. Nice to meet you. Have a good day!"
+    );
+  }
+
+  // 8I. GREETINGS IN ENGLISH
+  if (/greetings in english|english greetings|ways to greet/.test(n)) {
+    return reply(
+      "Common English greetings include: Hello, Hi, Good morning, " +
+      "Good afternoon, Good evening and How are you? " +
+      "You can reply to How are you? by saying: I am fine, thank you."
+    );
+  }
+
+  // 8J. ENGLISH LEARNING TIPS
+  if (/improve my english|improve english|learn english|speak english better|how to speak english/.test(n)) {
+    return reply(
+      "You can improve your English with regular practice. " +
+      "1. Learn five new words every day. " +
+      "2. Read simple English stories. " +
+      "3. Practise speaking in short sentences. " +
+      "4. Listen to English conversations. " +
+      "5. Write a few sentences about your day. " +
+      "Do not worry about making mistakes. Learn from them and keep practising!"
+    );
+  }
+
+  // 8K. TRANSLATIONS
+  if (/\b(translate|translation)\b/.test(n)) {
+    if (/\bhello\b/.test(n) && /\bmarathi\b/.test(n)) {
+      return reply("Hello in Marathi is नमस्कार (Namaskar).");
+    }
+
+    if (/\bthank you\b/.test(n) && /\bmarathi\b/.test(n)) {
+      return reply("Thank you in Marathi is धन्यवाद (Dhanyavaad).");
+    }
+
+    if (/\bgood morning\b/.test(n) && /\bmarathi\b/.test(n)) {
+      return reply("Good morning in Marathi can be expressed as शुभ प्रभात (Shubh Prabhat).");
+    }
+
+    if (/\bhello\b/.test(n) && /\bhindi\b/.test(n)) {
+      return reply("Hello in Hindi is नमस्ते (Namaste).");
+    }
+
+    if (/\bthank you\b/.test(n) && /\bhindi\b/.test(n)) {
+      return reply("Thank you in Hindi is धन्यवाद (Dhanyavaad).");
+    }
+  }
+
+  // 8L. COMMON ENGLISH SENTENCES
+  if (/how do i say thank you|how to say thank you/.test(n)) {
+    return reply(
+      "You can say: Thank you. Thank you very much. " +
+      "I really appreciate your help. That is very kind of you."
+    );
+  }
+
+  if (/how do i ask for help|how to ask for help/.test(n)) {
+    return reply(
+      "You can politely ask for help by saying: " +
+      "Could you please help me? Can you help me, please? " +
+      "I need some assistance. Would you mind helping me?"
+    );
+  }
+
+
 
   // 9. BASIC GRAMMAR EXPLANATIONS
   const grammar = {
