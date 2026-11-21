@@ -263,12 +263,13 @@ const DAYN=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturda
 const norm=q=>q.toLowerCase().replace(/[?!.,"“”]/g," ").replace(/\s+/g," ").trim();
 // Vaani's offline brain: she understands a fixed set of questions (no internet needed).
 
+
 function answer(q, ctx) {
   const n = norm(q);
-  const now = ctx.now;
+  const now = ctx.now || new Date();
   let m;
 
-  const say = (t, r) => [{ t: t, r: r }];
+  const say = (t, r = 0.85) => [{ t, r }];
   const reply = (t) => ({ text: t, say: say(t) });
 
   if (!n) {
@@ -276,12 +277,11 @@ function answer(q, ctx) {
   }
 
   // 1. TIME
-  if (/\bwhat time\b|\btime is it\b|\bthe time\b/.test(n)) {
+  if (/\b(what time|time is it|the time|current time)\b/.test(n)) {
     const h = now.getHours() % 12 || 12;
     const mi = String(now.getMinutes()).padStart(2, "0");
-    const t = "It is " + h + ":" + mi + " " +
-      (now.getHours() < 12 ? "AM" : "PM") + ".";
-    return reply(t);
+    return reply("It is " + h + ":" + mi + " " +
+      (now.getHours() < 12 ? "AM" : "PM") + ".");
   }
 
   // 2. DATE AND DAY
@@ -290,27 +290,49 @@ function answer(q, ctx) {
     const off = /tomorrow/.test(n) ? 1 :
       /yesterday/.test(n) ? -1 : 0;
     const d = new Date(now.getTime() + off * 864e5);
-    const t = (off === 1 ? "Tomorrow is " :
-      off === -1 ? "Yesterday was " : "Today is ") +
+    return reply(
+      (off === 1 ? "Tomorrow is " :
+       off === -1 ? "Yesterday was " : "Today is ") +
       DAYN[d.getDay()] + ", " + d.getDate() + " " +
-      MONN[d.getMonth()] + " " + d.getFullYear() + ".";
-    return reply(t);
+      MONN[d.getMonth()] + " " + d.getFullYear() + "."
+    );
   }
 
-  // 3. FIRST OR LAST LETTER
+  // 3. GREETINGS
+  if (/^(hi|hello|hey|namaste|good morning|good afternoon|good evening)\b/.test(n)) {
+    return reply("Hello! I am Vaani, your English learning assistant. What would you like to learn today?");
+  }
+
+  if (/\b(thank you|thanks|thank)\b/.test(n)) {
+    return reply("You are welcome! Keep practising your English.");
+  }
+
+  if (/\bwho are you\b|\byour name\b/.test(n)) {
+    return reply("I am Vaani, your English learning assistant. I can help you practise English.");
+  }
+
+  // 4. HELP
+  if (/\bhelp\b|what can you do|what can i ask/.test(n)) {
+    return reply(
+      "I can help you with grammar, tenses, vocabulary, spelling, pronunciation, " +
+      "translations, sentence formation, sentence correction and everyday conversations. " +
+      "Ask me questions such as: What is a noun? or How do I introduce myself?"
+    );
+  }
+
+  // 5. FIRST OR LAST LETTER
   m = n.match(/\b(first|last) letter (?:of|in) (?:the word )?([a-z]+)/);
   if (m) {
     const w = m[2];
     const l = m[1] === "first" ? w[0] : w[w.length - 1];
     return {
-      text: "The " + m[1] + " letter of " + w +
-        " is " + l.toUpperCase() + ".",
+      text: "The " + m[1] + " letter of " + w + " is " + l.toUpperCase() + ".",
       tiles: [[l.toUpperCase()]],
-      say: say("The " + m[1] + " letter of " + w + " is " + LET[l] + ".")
+      say: say("The " + m[1] + " letter of " + w + " is " + (LET[l] || l) + ".")
     };
   }
 
-  // 4. SPELLING
+  // 6. SPELLING
   m = n.match(/\bspell(?:ing)?\b(?:\s+(?:of|for|the|word|me|out))*\s+(.+)$/);
   if (m) {
     const words = m[1]
@@ -323,21 +345,21 @@ function answer(q, ctx) {
     if (words.length) {
       const sy = [];
       words.forEach(w => {
-        sy.push({ t: w, r: .75 });
-        sy.push({ t: w.split("").map(x => LET[x]).join(", "), r: .6 });
-        sy.push({ t: w, r: .8 });
+        sy.push({ t: w, r: 0.75 });
+        sy.push({ t: w.split("").map(x => LET[x] || x).join(", "), r: 0.6 });
+        sy.push({ t: w, r: 0.8 });
       });
 
       return {
         text: "Here is how you spell " + words.join(", ") + ":",
-        words: words,
+        words,
         tiles: words.map(w => w.toUpperCase().split("")),
         say: sy
       };
     }
   }
 
-  // 5. PRONUNCIATION
+  // 7. PRONUNCIATION
   m = n.match(/^(?:please )?(?:say|pronounce|repeat)\s+(?:the word\s+)?(.+)$/) ||
       n.match(/\bhow (?:do you|do i|to|can i) (?:say|pronounce)\s+(.+)$/);
 
@@ -346,12 +368,12 @@ function answer(q, ctx) {
     if (p && p.length <= 60) {
       return {
         text: "Say it like this: " + p,
-        say: [{ t: p, r: .6 }, { t: p, r: .85 }]
+        say: [{ t: p, r: 0.6 }, { t: p, r: 0.85 }]
       };
     }
   }
 
-  // 6. COUNTING
+  // 8. COUNTING
   m = n.match(/\bcount (?:from \w+ )?to (\w+)/);
   if (m) {
     const k = /^\d+$/.test(m[1]) ? +m[1] : NW.indexOf(m[1]);
@@ -359,93 +381,67 @@ function answer(q, ctx) {
       const L = Array.from({ length: k }, (_, i) => i + 1);
       return {
         text: L.join(", "),
-        say: say(L.map(x => NW[x]).join(", "), .7)
+        say: say(L.map(x => NW[x] || String(x)).join(", "), 0.7)
       };
     }
     return reply("I can count up to twenty. Try: count to ten.");
   }
 
-  // 7. GREETINGS
-  if (/^(hi|hello|hey|namaste|good morning|good evening)\b/.test(n)) {
-    return reply("Hello! I am Vaani, your English learning assistant. What would you like to learn today?");
-  }
-
-  if (/\bthank/.test(n)) {
-    return reply("You are welcome! Keep practising your English.");
-  }
-
-  if (/\bwho are you\b|\byour name\b/.test(n)) {
-    return reply("I am Vaani, your English learning assistant. I can help you practise English.");
-  }
-
-  // 8. HELP
-  if (/\bhelp\b|what can you do|what can i ask/.test(n)) {
-    return reply(
-      "I can help you with spelling, pronunciation, word meanings, " +
-      "grammar, tenses, synonyms, antonyms and sentence examples. " +
-      "Try asking: What is a noun?"
-    );
-  }
-    
-  
-  // 8A. SELF INTRODUCTION
+  // 9. SELF INTRODUCTION
   if (/introduce myself|self introduction|how do i introduce|how can i introduce/.test(n)) {
     return reply(
-      "You can introduce yourself by sharing your name, city, " +
-      "education and interests. Example: Hello! My name is [your name]. " +
-      "I am from [your city]. I am a student. I enjoy learning new things. " +
-      "My hobbies are reading and listening to music. Nice to meet you!"
+      "You can introduce yourself by sharing your name, city, education and interests. " +
+      "Example: Hello! My name is [your name]. I am from [your city]. " +
+      "I am a student. I enjoy learning new things. My hobbies are reading and listening to music. " +
+      "Nice to meet you!"
     );
   }
 
-  // 8B. IS, AM AND ARE
-  if (/\b(is am and are|is am are|is and are|am and are)\b/.test(n) ||
-    /\b(use|uses|difference|explain)\b.*\b(is|am|are)\b/.test(n)) {
+  // 10. IS, AM AND ARE
+  if (/is am and are|is am are|difference between is and are|difference between am and is/.test(n) ||
+      /\b(use|uses|difference|explain|when)\b.*\b(is|am|are)\b/.test(n)) {
     return reply(
       "Is, am and are are forms of the verb 'to be'. " +
-      "AM is used with I: I am a student. " +
-      "IS is used with he, she, it and singular names: She is happy. " +
-      "ARE is used with you, we, they and plural nouns: They are students. " +
+      "Use AM with I: I am a student. " +
+      "Use IS with he, she, it and singular names: She is happy. " +
+      "Use ARE with you, we, they and plural nouns: They are students. " +
       "Remember: I am, He is, She is, It is, You are, We are, They are."
     );
   }
 
-    // 8C. DO AND DOES
-  if (
-    /explain do and does|difference between do and does|use of do and does|when to use do and does|how to use do and does|do vs does/.test(n)
-  ) {
+  // 11. DO AND DOES
+  if (/do and does|does and do|do vs does/.test(n) ||
+      /\bwhen\b.*\b(use|do i use)\b.*\b(do|does)\b/.test(n)) {
     return reply(
       "Do and does are used in questions and negative sentences in the simple present tense. " +
       "Use DO with I, you, we and they. Example: Do you play cricket? " +
       "Use DOES with he, she and it. Example: Does she study English? " +
-      "Examples of negatives: I do not know. She does not know."
+      "Negative examples: I do not know. She does not know."
     );
   }
 
-  // 8D. HAS AND HAVE
+  // 12. HAS AND HAVE
   if (/\b(has|have)\b/.test(n) &&
       /\b(explain|difference|use|uses|when|what|how)\b/.test(n)) {
     return reply(
-      "Has and have show possession or something someone owns. " +
-      "Use HAS with he, she and it. Example: She has a book. " +
+      "Has and have show possession. Use HAS with he, she and it. Example: She has a book. " +
       "Use HAVE with I, you, we and they. Example: I have a pen. " +
       "Remember: He has, She has, I have, You have, We have, They have."
     );
   }
 
-  // 8E. A, AN AND THE
-  if (/\b(a an the|articles|article)\b/.test(n) &&
-      /\b(explain|difference|use|uses|what|how)\b/.test(n)) {
+  // 13. ARTICLES
+  if (/a an the|articles|article/.test(n) &&
+      /\b(explain|difference|use|uses|what|how|when)\b/.test(n)) {
     return reply(
-      "A, an and the are articles. Use A before a consonant sound, " +
-      "for example, a book and a university. Use AN before a vowel sound, " +
-      "for example, an apple and an hour. Use THE for a particular person " +
-      "or thing, for example, the Sun and the book on the table."
+      "A, an and the are articles. Use A before a consonant sound, for example, a book. " +
+      "Use AN before a vowel sound, for example, an apple. " +
+      "Use THE for a particular person or thing, for example, the Sun or the book on the table."
     );
   }
 
-  // 8F. SINGULAR AND PLURAL
-  if (/singular and plural|plural form|make .* plural/.test(n)) {
+  // 14. SINGULAR AND PLURAL
+  if (/singular and plural|plural form|make .* plural|what is singular|what is plural/.test(n)) {
     return reply(
       "A singular noun refers to one person or thing. A plural noun refers to more than one. " +
       "Usually, we add S or ES to make a noun plural. " +
@@ -454,38 +450,141 @@ function answer(q, ctx) {
     );
   }
 
-  // 8G. QUESTION WORDS
+  // 15. SUBJECT AND PREDICATE
+  if (/subject and predicate|what is a subject|what is predicate|explain subject|explain predicate/.test(n)) {
+    return reply(
+      "A subject tells us who or what the sentence is about. " +
+      "A predicate tells us something about the subject and usually contains a verb. " +
+      "Example: The girl is singing. 'The girl' is the subject and 'is singing' is the predicate."
+    );
+  }
+
+  // 16. PARTS OF SPEECH
+  if (/parts of speech|how many parts of speech/.test(n)) {
+    return reply(
+      "There are eight commonly taught parts of speech: noun, pronoun, verb, adjective, " +
+      "adverb, preposition, conjunction and interjection. " +
+      "Each part has a different role in a sentence."
+    );
+  }
+
+  // 17. QUESTION WORDS
   if (/question words|wh questions|what are wh|what is wh/.test(n)) {
     return reply(
       "Common question words are: WHO asks about a person, WHAT asks about a thing, " +
       "WHERE asks about a place, WHEN asks about time, WHY asks for a reason, " +
-      "and HOW asks about the way something happens. " +
-      "Examples: Who are you? What is your name? Where do you live? " +
-      "When is your class? Why are you happy? How are you?"
+      "WHICH asks about a choice, and HOW asks about the way something happens. " +
+      "Examples: Who are you? What is your name? Where do you live? When is your class?"
     );
   }
 
-  // 8H. EVERYDAY ENGLISH CONVERSATION
+  // 18. MODAL VERBS
+  if (/modal verbs|modal auxiliaries|what are modals|explain modals/.test(n)) {
+    return reply(
+      "Modal verbs are helping verbs that express ability, permission, possibility, " +
+      "advice or necessity. Common modals include can, could, may, might, must, " +
+      "should, will and would. Examples: I can swim. You should study. May I come in?"
+    );
+  }
+
+  // 19. ACTIVE AND PASSIVE VOICE
+  if (/active and passive voice|passive voice|active voice/.test(n)) {
+    return reply(
+      "In active voice, the subject performs the action. Example: The teacher teaches the students. " +
+      "In passive voice, the subject receives the action. Example: The students are taught by the teacher. " +
+      "The focus changes from the person doing the action to the person or thing receiving it."
+    );
+  }
+
+  // 20. DIRECT AND INDIRECT SPEECH
+  if (/direct and indirect speech|indirect speech|direct speech/.test(n)) {
+    return reply(
+      "Direct speech gives the exact words spoken by someone. Example: Riya said, 'I am happy.' " +
+      "Indirect speech reports what someone said. Example: Riya said that she was happy. " +
+      "Pronouns and verb tenses may change when converting direct speech into indirect speech."
+    );
+  }
+
+  // 21. TENSES
+  const tenseAnswers = {
+    "simple present": "The simple present describes habits, routines and general facts. Example: I go to college every day.",
+    "present simple": "The simple present describes habits, routines and general facts. Example: She plays cricket.",
+    "present continuous": "The present continuous describes an action happening now. It uses am, is or are with a verb ending in ing. Example: I am studying.",
+    "present perfect": "The present perfect describes an action connected to the present. It uses has or have with the past participle. Example: I have finished my work.",
+    "present perfect continuous": "The present perfect continuous describes an action that started in the past and continues to the present. Example: I have been studying for two hours.",
+    "simple past": "The simple past describes an action completed in the past. Example: I visited my friend yesterday.",
+    "past simple": "The simple past describes an action completed in the past. Example: She played yesterday.",
+    "past continuous": "The past continuous describes an action that was happening at a particular time in the past. Example: I was studying.",
+    "past perfect": "The past perfect describes an action completed before another past action. Example: I had finished my work before dinner.",
+    "past perfect continuous": "The past perfect continuous describes an action that continued for some time before another past event. Example: I had been studying for two hours.",
+    "simple future": "The simple future describes an action that will happen later. Example: I will study tomorrow.",
+    "future simple": "The simple future describes an action that will happen later. Example: She will visit us.",
+    "future continuous": "The future continuous describes an action that will be happening at a particular time in the future. Example: I will be studying at 8 PM.",
+    "future perfect": "The future perfect describes an action that will be completed before a future time. Example: I will have finished my work by evening.",
+    "future perfect continuous": "The future perfect continuous describes an action that will have continued for a period of time by a future point. Example: I will have been studying for three hours."
+  };
+
+  for (const key of Object.keys(tenseAnswers)) {
+    if (n.includes(key)) return reply(tenseAnswers[key]);
+  }
+
+  if (/\b(tenses|what is tense|types of tense|12 tenses|all tenses)\b/.test(n)) {
+    return reply(
+      "There are three main time categories: present, past and future. " +
+      "Each has four commonly taught forms: simple, continuous, perfect and perfect continuous. " +
+      "That gives us twelve commonly taught tense forms."
+    );
+  }
+
+  // 22. EVERYDAY CONVERSATION
   if (/daily conversation|everyday conversation|daily use english|daily use sentences/.test(n)) {
     return reply(
       "Here are some useful everyday English sentences: " +
-      "How are you? I am fine, thank you. " +
-      "What are you doing? I am studying. " +
-      "Could you please help me? Thank you very much. " +
-      "Excuse me. Nice to meet you. Have a good day!"
+      "How are you? I am fine, thank you. What are you doing? I am studying. " +
+      "Could you please help me? Thank you very much. Excuse me. Nice to meet you. Have a good day!"
     );
   }
 
-  // 8I. GREETINGS IN ENGLISH
+  // 23. COLLEGE CONVERSATION
+  if (/college conversation|talk in college|speak in college|classroom conversation/.test(n)) {
+    return reply(
+      "Here are useful sentences for college: " +
+      "Good morning, ma'am. May I come in? " +
+      "Could you please explain this topic again? " +
+      "I have a question. May I borrow your notes? " +
+      "When is the assignment due? Thank you, ma'am."
+    );
+  }
+
+  // 24. SHOPPING CONVERSATION
+  if (/shopping conversation|talk while shopping|shopping english/.test(n)) {
+    return reply(
+      "Useful shopping sentences: How much does this cost? " +
+      "Do you have this in another size? Can I see that, please? " +
+      "I would like to buy this. Is there a discount? " +
+      "Can I pay by card?"
+    );
+  }
+
+  // 25. TRAVEL CONVERSATION
+  if (/travel conversation|english for travelling|ask for directions|asking directions/.test(n)) {
+    return reply(
+      "Useful travel sentences: Excuse me, where is the bus station? " +
+      "How can I get to the railway station? " +
+      "How far is it from here? Which bus goes to the city centre? " +
+      "Could you please show me the way?"
+    );
+  }
+
+  // 26. GREETINGS
   if (/greetings in english|english greetings|ways to greet/.test(n)) {
     return reply(
-      "Common English greetings include: Hello, Hi, Good morning, " +
-      "Good afternoon, Good evening and How are you? " +
-      "You can reply to How are you? by saying: I am fine, thank you."
+      "Common English greetings include: Hello, Hi, Good morning, Good afternoon, " +
+      "Good evening and How are you? You can reply to How are you? by saying: I am fine, thank you."
     );
   }
 
-  // 8J. ENGLISH LEARNING TIPS
+  // 27. ENGLISH LEARNING TIPS
   if (/improve my english|improve english|learn english|speak english better|how to speak english/.test(n)) {
     return reply(
       "You can improve your English with regular practice. " +
@@ -498,30 +597,70 @@ function answer(q, ctx) {
     );
   }
 
-  // 8K. TRANSLATIONS
-  if (/\b(translate|translation)\b/.test(n)) {
-    if (/\bhello\b/.test(n) && /\bmarathi\b/.test(n)) {
-      return reply("Hello in Marathi is नमस्कार (Namaskar).");
+  // 28. TRANSLATIONS IN 11 LANGUAGES
+  const translations = {
+    "hello": {
+      marathi: "नमस्कार", hindi: "नमस्ते", bengali: "নমস্কার",
+      tamil: "வணக்கம்", telugu: "నమస్కారం", gujarati: "નમસ્તે",
+      kannada: "ನಮಸ್ಕಾರ", malayalam: "നമസ്കാരം",
+      punjabi: "ਸਤ ਸ੍ਰੀ ਅਕਾਲ", odia: "ନମସ୍କାର", urdu: "السلام علیکم"
+    },
+    "thank you": {
+      marathi: "धन्यवाद", hindi: "धन्यवाद", bengali: "ধন্যবাদ",
+      tamil: "நன்றி", telugu: "ధన్యవాదాలు", gujarati: "આભાર",
+      kannada: "ಧನ್ಯವಾದಗಳು", malayalam: "നന്ദി",
+      punjabi: "ਧੰਨਵਾਦ", odia: "ଧନ୍ୟବାଦ", urdu: "شکریہ"
+    },
+    "how are you": {
+      marathi: "तुम्ही कसे आहात?", hindi: "आप कैसे हैं?",
+      bengali: "আপনি কেমন আছেন?", tamil: "நீங்கள் எப்படி இருக்கிறீர்கள்?",
+      telugu: "మీరు ఎలా ఉన్నారు?", gujarati: "તમે કેમ છો?",
+      kannada: "ನೀವು ಹೇಗಿದ್ದೀರಿ?", malayalam: "സുഖമാണോ?",
+      punjabi: "ਤੁਸੀਂ ਕਿਵੇਂ ਹੋ?", odia: "ଆପଣ କେମିତି ଅଛନ୍ତି?",
+      urdu: "آپ کیسے ہیں؟"
+    },
+    "good morning": {
+      marathi: "शुभ प्रभात", hindi: "सुप्रभात",
+      bengali: "সুপ্রভাত", tamil: "காலை வணக்கம்",
+      telugu: "శుభోదయం", gujarati: "સુપ્રભાત",
+      kannada: "ಶುಭೋದಯ", malayalam: "സുപ്രഭാതം",
+      punjabi: "ਸ਼ੁਭ ਸਵੇਰ", odia: "ସୁପ୍ରଭାତ", urdu: "صبح بخیر"
+    }
+  };
+
+  if (/\b(translate|translation|meaning in)\b/.test(n)) {
+    const languageNames = {
+      marathi: "marathi", hindi: "hindi", bengali: "bengali",
+      tamil: "tamil", telugu: "telugu", gujarati: "gujarati",
+      kannada: "kannada", malayalam: "malayalam",
+      punjabi: "punjabi", odia: "odia", urdu: "urdu"
+    };
+
+    const language = Object.keys(languageNames).find(lang => n.includes(lang));
+    const phrase = Object.keys(translations).find(p => n.includes(p));
+
+    if (language && phrase) {
+      return reply(
+        '"' + phrase + '" in ' + language +
+        ' is: ' + translations[phrase][language] + "."
+      );
     }
 
-    if (/\bthank you\b/.test(n) && /\bmarathi\b/.test(n)) {
-      return reply("Thank you in Marathi is धन्यवाद (Dhanyavaad).");
-    }
-
-    if (/\bgood morning\b/.test(n) && /\bmarathi\b/.test(n)) {
-      return reply("Good morning in Marathi can be expressed as शुभ प्रभात (Shubh Prabhat).");
-    }
-
-    if (/\bhello\b/.test(n) && /\bhindi\b/.test(n)) {
-      return reply("Hello in Hindi is नमस्ते (Namaste).");
-    }
-
-    if (/\bthank you\b/.test(n) && /\bhindi\b/.test(n)) {
-      return reply("Thank you in Hindi is धन्यवाद (Dhanyavaad).");
-    }
+    return reply(
+      "I currently have a small set of common translations in Marathi, Hindi, Bengali, Tamil, " +
+      "Telugu, Gujarati, Kannada, Malayalam, Punjabi, Odia and Urdu. " +
+      "Try: Translate hello into Marathi."
+    );
   }
 
-  // 8L. COMMON ENGLISH SENTENCES
+  // 29. COMMON POLITE SENTENCES
+  if (/how do i ask for help|how to ask for help/.test(n)) {
+    return reply(
+      "You can politely ask for help by saying: Could you please help me? " +
+      "Can you help me, please? I need some assistance. Would you mind helping me?"
+    );
+  }
+
   if (/how do i say thank you|how to say thank you/.test(n)) {
     return reply(
       "You can say: Thank you. Thank you very much. " +
@@ -529,80 +668,28 @@ function answer(q, ctx) {
     );
   }
 
-  if (/how do i ask for help|how to ask for help/.test(n)) {
-    return reply(
-      "You can politely ask for help by saying: " +
-      "Could you please help me? Can you help me, please? " +
-      "I need some assistance. Would you mind helping me?"
-    );
-  }
-
-
-
-  // 9. BASIC GRAMMAR EXPLANATIONS
+  // 30. BASIC GRAMMAR DEFINITIONS
   const grammar = {
-    "noun": "A noun is the name of a person, place, animal or thing. Examples: teacher, Mumbai, dog and book.",
-    "pronoun": "A pronoun is a word used instead of a noun. Examples: he, she, it, they and we.",
-    "verb": "A verb is an action or state word. Examples: run, eat, write, is and are.",
-    "adjective": "An adjective describes a noun or pronoun. Examples: beautiful, tall, happy and intelligent.",
-    "adverb": "An adverb describes a verb, adjective or another adverb. Examples: slowly, quickly and carefully.",
-    "preposition": "A preposition shows the relationship between words. Examples: in, on, under, behind and between.",
-    "conjunction": "A conjunction joins words or sentences. Examples: and, but, because and or.",
-    "article": "Articles are words used before nouns. The three articles are a, an and the.",
-    "pronunciation": "Pronunciation means the way a word is spoken. Practising words aloud can help improve your speaking skills.",
-    "grammar": "Grammar is the set of rules that helps us form correct words, phrases and sentences in a language."
+    noun: "A noun is the name of a person, place, animal or thing. Examples: teacher, Mumbai, dog and book.",
+    pronoun: "A pronoun is a word used instead of a noun. Examples: he, she, it, they and we.",
+    verb: "A verb is an action or state word. Examples: run, eat, write, is and are.",
+    adjective: "An adjective describes a noun or pronoun. Examples: beautiful, tall, happy and intelligent.",
+    adverb: "An adverb describes a verb, adjective or another adverb. Examples: slowly, quickly and carefully.",
+    preposition: "A preposition shows the relationship between words. Examples: in, on, under, behind and between.",
+    conjunction: "A conjunction joins words or sentences. Examples: and, but, because and or.",
+    article: "Articles are words used before nouns. The three articles are a, an and the.",
+    interjection: "An interjection expresses a sudden feeling or emotion. Examples: Wow!, Oh! and Hurray!",
+    pronunciation: "Pronunciation means the way a word is spoken. Practising words aloud can help improve your speaking skills.",
+    grammar: "Grammar is the set of rules that helps us form correct words, phrases and sentences in a language.",
+    subject: "The subject tells us who or what a sentence is about.",
+    predicate: "The predicate tells us something about the subject and usually contains a verb."
   };
 
-  m = n.match(/(?:what is|what are|explain|define|meaning of)\s+(?:a |an |the )?(noun|pronoun|verb|adjective|adverb|preposition|conjunction|article|pronunciation|grammar)\b/);
+  m = n.match(/(?:what is|what are|explain|define|meaning of)\s+(?:a |an |the )?(noun|pronoun|verb|adjective|adverb|preposition|conjunction|article|interjection|pronunciation|grammar|subject|predicate)\b/);
 
-  if (m && grammar[m[1]]) {
-    return reply(grammar[m[1]]);
-  }
+  if (m && grammar[m[1]]) return reply(grammar[m[1]]);
 
-  // 10. TENSES
-  if (/\b(simple present|present simple|present tense)\b/.test(n)) {
-    return reply(
-      "The simple present tense describes habits, routines and general facts. " +
-      "Example: I go to college every day. She plays cricket."
-    );
-  }
-
-  if (/\b(present continuous|continuous present)\b/.test(n)) {
-    return reply(
-      "The present continuous tense describes an action happening now. " +
-      "It uses am, is or are with a verb ending in ing. Example: I am studying."
-    );
-  }
-
-  if (/\b(simple past|past simple|past tense)\b/.test(n)) {
-    return reply(
-      "The simple past tense describes an action that happened in the past. " +
-      "Example: I visited my friend yesterday."
-    );
-  }
-
-  if (/\b(past continuous|continuous past)\b/.test(n)) {
-    return reply(
-      "The past continuous tense describes an action that was happening at a particular time in the past. " +
-      "Example: I was studying."
-    );
-  }
-
-  if (/\b(simple future|future simple|future tense)\b/.test(n)) {
-    return reply(
-      "The simple future tense describes an action that will happen later. " +
-      "It commonly uses will with the base form of a verb. Example: I will study tomorrow."
-    );
-  }
-
-  if (/\b(tenses|what is tense|types of tense)\b/.test(n)) {
-    return reply(
-      "There are three main tenses in English: present, past and future. " +
-      "Each tense has four commonly taught forms: simple, continuous, perfect and perfect continuous."
-    );
-  }
-
-  // 11. SYNONYMS
+  // 31. SYNONYMS
   const synonyms = {
     happy: "glad, joyful, cheerful",
     sad: "unhappy, upset, sorrowful",
@@ -616,7 +703,13 @@ function answer(q, ctx) {
     begin: "start, commence",
     end: "finish, complete",
     angry: "mad, annoyed, irritated",
-    brave: "courageous, fearless, bold"
+    brave: "courageous, fearless, bold",
+    important: "significant, essential, valuable",
+    kind: "caring, helpful, considerate",
+    calm: "peaceful, quiet, relaxed",
+    honest: "truthful, sincere, trustworthy",
+    strong: "powerful, sturdy, tough",
+    weak: "frail, feeble, delicate"
   };
 
   m = n.match(/(?:synonyms? of|synonyms? for|words similar to)\s+([a-z]+)/);
@@ -624,23 +717,15 @@ function answer(q, ctx) {
     return reply("Some synonyms of " + m[1] + " are: " + synonyms[m[1]] + ".");
   }
 
-  // 12. ANTONYMS
+  // 32. ANTONYMS
   const antonyms = {
-    happy: "sad",
-    big: "small",
-    hot: "cold",
-    fast: "slow",
-    easy: "difficult",
-    beautiful: "ugly",
-    strong: "weak",
-    rich: "poor",
-    old: "young or new",
-    early: "late",
-    open: "closed",
-    begin: "end",
-    brave: "cowardly",
-    clean: "dirty",
-    light: "dark or heavy"
+    happy: "sad", big: "small", hot: "cold", fast: "slow",
+    easy: "difficult", beautiful: "ugly", strong: "weak",
+    rich: "poor", old: "young or new", early: "late",
+    open: "closed", begin: "end", brave: "cowardly",
+    clean: "dirty", light: "dark or heavy", kind: "unkind",
+    day: "night", success: "failure", love: "hate",
+    accept: "reject", increase: "decrease"
   };
 
   m = n.match(/(?:antonyms? of|antonyms? for|opposite of)\s+([a-z]+)/);
@@ -648,7 +733,7 @@ function answer(q, ctx) {
     return reply("The opposite of " + m[1] + " is " + antonyms[m[1]] + ".");
   }
 
-  // 13. EXAMPLE SENTENCES
+  // 33. EXAMPLE SENTENCES
   const examples = {
     happy: "I am happy today.",
     beautiful: "The garden is beautiful.",
@@ -659,7 +744,12 @@ function answer(q, ctx) {
     learn: "I want to learn English.",
     respect: "We should respect everyone.",
     confident: "I feel confident when I speak English.",
-    friendship: "Friendship is important in our lives."
+    friendship: "Friendship is important in our lives.",
+    kindness: "Kindness makes the world a better place.",
+    opportunity: "This is a good opportunity to learn.",
+    improve: "I want to improve my English.",
+    grateful: "I am grateful for your help.",
+    curious: "The curious child asked many questions."
   };
 
   m = n.match(/(?:sentence (?:with|using)|use)\s+([a-z]+)\s+(?:in a sentence|in sentence)/) ||
@@ -669,12 +759,12 @@ function answer(q, ctx) {
     return reply("Here is an example: " + examples[m[1]]);
   }
 
-  // 14. WORD MEANINGS
+  // 34. WORD MEANINGS
   const meanings = {
     happy: "feeling pleasure or joy",
     beautiful: "pleasing to look at",
     intelligent: "having the ability to learn and understand things",
-    brave: "showing courage when facing difficulty or danger",
+    brave: "showing courage when facing difficulty",
     honest: "always telling the truth and not cheating",
     confident: "believing in your own abilities",
     curious: "wanting to know or learn something",
@@ -686,7 +776,12 @@ function answer(q, ctx) {
     education: "the process of learning and gaining knowledge",
     opportunity: "a suitable chance to do something",
     improve: "to become better or make something better",
-    encourage: "to give someone support or confidence"
+    encourage: "to give someone support or confidence",
+    responsibility: "a duty or task that someone is expected to take care of",
+    communicate: "to share information, ideas or feelings with others",
+    patience: "the ability to wait calmly",
+    knowledge: "information and understanding gained through learning",
+    creative: "having the ability to make new or original things"
   };
 
   m = n.match(/^(?:what(?: is|s| does)|meaning of|define|what do you mean by)\s+(?:a |an |the )?([a-z]+)(?: mean| means)?$/);
@@ -698,7 +793,7 @@ function answer(q, ctx) {
     if (pic) {
       return {
         text: w + " means: " + pic,
-        say: [{ t: w, r: .7 }, { t: w, r: .85 }]
+        say: [{ t: w, r: 0.7 }, { t: w, r: 0.85 }]
       };
     }
 
@@ -712,21 +807,58 @@ function answer(q, ctx) {
     );
   }
 
-  // 15. SENTENCE FORMATION
-  if (/how to make a sentence|how to form a sentence|sentence structure/.test(n)) {
+  // 35. SENTENCE CORRECTION - COMMON EXAMPLES
+  const corrections = {
+    "she go to college": "She goes to college.",
+    "he go to school": "He goes to school.",
+    "i goes to school": "I go to school.",
+    "she have a book": "She has a book.",
+    "he have a car": "He has a car.",
+    "they is happy": "They are happy.",
+    "we is students": "We are students.",
+    "i is a student": "I am a student.",
+    "he are my friend": "He is my friend.",
+    "she are beautiful": "She is beautiful.",
+    "i am agree": "I agree.",
+    "she don't know": "She doesn't know.",
+    "he don't like tea": "He doesn't like tea."
+  };
+
+  if (/correct|correction|is this sentence right|is this correct/.test(n)) {
+    const input = n
+      .replace(/^(please )?(correct|correction|check|is this sentence right|is this correct)\s*/g, "")
+      .replace(/^this sentence\s*/g, "")
+      .trim();
+
+    const cleaned = input.replace(/[?!.]/g, "").trim();
+
+    if (corrections[cleaned]) {
+      return reply("Correct sentence: " + corrections[cleaned]);
+    }
+
     return reply(
-      "A basic English sentence usually follows Subject + Verb + Object. " +
-      "For example: She reads a book. Here, She is the subject, reads is the verb and a book is the object."
+      "I can currently correct a limited set of common grammar mistakes. " +
+      "Try: Correct this sentence: She go to college."
     );
   }
 
-  // 16. FALLBACK
+  // 36. SENTENCE FORMATION
+  if (/how to make a sentence|how to form a sentence|sentence structure/.test(n)) {
+    return reply(
+      "A basic English sentence usually follows Subject + Verb + Object. " +
+      "For example: She reads a book. Here, She is the subject, reads is the verb and a book is the object. " +
+      "Not every English sentence needs an object."
+    );
+  }
+
+  // 37. FALLBACK
   return reply(
     "That is an interesting question! I can currently help with English grammar, " +
-    "tenses, word meanings, synonyms, antonyms, spelling, pronunciation and sentence examples. " +
-    "Try asking: What is a noun?"
+    "tenses, vocabulary, word meanings, synonyms, antonyms, spelling, pronunciation, " +
+    "translations and everyday conversations. Try asking: What is a noun?"
   );
 }
+
 
 //#ENDPURE
 
