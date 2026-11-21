@@ -1239,16 +1239,17 @@ const code = localLang
     ? LANGS[localLang].v
     : "en-IN";
 
-const v = vf(localLang ? code.slice(0, 2) : "en");
+const voices = speechSynthesis.getVoices();
 
-if (localLang && !v) {
-    next();
-    return;
-}
+const v = voices.find(voice =>
+    voice.lang.toLowerCase() === code.toLowerCase()
+);
 
 const u = new SpeechSynthesisUtterance(x.t);
 
-if (v) u.voice = v;
+if (v) {
+    u.voice = v;
+}
 
 u.lang = code;
 u.rate = x.r || (localLang ? .9 : .8);
