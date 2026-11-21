@@ -1210,6 +1210,7 @@ function setSpeaking(on) {
     }
 }
 
+
 function speak(list, cb) {
     stopRec();
 
@@ -1232,34 +1233,39 @@ function speak(list, cb) {
         }
 
         const localLang = x.l === "hi"
-    ? lang
-    : (LANGS[x.l] ? x.l : null);
+            ? lang
+            : (LANGS[x.l] ? x.l : null);
 
-const code = localLang
-    ? LANGS[localLang].v
-    : "en-IN";
+        const code = localLang
+            ? LANGS[localLang].v
+            : "en-IN";
 
-const voices = speechSynthesis.getVoices();
+        const voices = speechSynthesis.getVoices();
 
-const v = localLang
-    ? voices.find(voice =>
-        voice.lang.toLowerCase() === code.toLowerCase()
-      )
-    : voices.find(voice =>
-        voice.name === "Microsoft Heera - English (India)"
-      ) || voices.find(voice =>
-        voice.lang.toLowerCase() === "en-in"
-      );
+        const v = localLang
+            ? voices.find(voice =>
+                voice.lang.toLowerCase() === code.toLowerCase()
+              )
+            : voices.find(voice =>
+                voice.name === "Microsoft Heera - English (India)"
+            );
 
-const u = new SpeechSynthesisUtterance(x.t);
+        // Skip local speech if its matching voice is unavailable
+        if (localLang && !v) {
+            next();
+            return;
+        }
 
-if (v) {
-    u.voice = v;
-}
+        const u = new SpeechSynthesisUtterance(x.t);
 
-u.lang = code;
-u.rate = x.r || (localLang ? .9 : .8);
-u.pitch = 1.15;
+        if (v) {
+            u.voice = v;
+        }
+
+        u.lang = code;
+        u.rate = x.r || (localLang ? .9 : .8);
+        u.pitch = 1.15;
+
         let fallbackTimer;
         let closeTimer;
         let boundaryDetected = false;
