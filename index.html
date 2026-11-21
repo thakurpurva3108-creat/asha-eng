@@ -66,31 +66,29 @@ select{font:inherit;padding:10px;border-radius:12px;border:2px solid var(--pri2)
 .av .mouth {
     position: absolute;
     left: 52%;
-    top: 46%;
-    width: 16%;
+    top: 53%;
+    width: 15%;
     height: 7%;
     background: #76233d;
     border: 1px solid #f4a0a9;
     border-radius: 50%;
-    transform: translate(-50%, -50%) scaleY(0.15);
+    transform: translate(-50%, -50%) scaleY(0.12);
     transform-origin: center;
     opacity: 0;
     z-index: 3;
     pointer-events: none;
 }
 
-.av.talking .mouth {
-    opacity: 1;
-    animation: talk-mouth 0.22s ease-in-out infinite alternate;
+.av .mouth {
+    transition: transform 0.08s ease, opacity 0.08s ease;
 }
 
-@keyframes talk-mouth {
-    from {
-        transform: translate(-50%, -50%) scaleY(0.2);
-    }
-    to {
-        transform: translate(-50%, -50%) scaleY(1);
-    }
+.av.talking .mouth {
+    opacity: 1;
+}
+
+.av.mouth-open .mouth {
+    transform: translate(-50%, -50%) scaleY(0.85);
 }
 .av.on{animation:ringp 1.2s infinite}
 @keyframes ringp{0%{box-shadow:0 0 0 0 rgba(124,108,240,.55)}100%{box-shadow:0 0 0 18px rgba(124,108,240,0)}}
@@ -743,26 +741,89 @@ function setSpeaking(on){
     speaking = on;
 
     for(const id of ["av","wl","wr","aav","awl","awr"]){
-        $(id).classList.toggle("on", on);
+        const el = $(id);
+        if(el) el.classList.toggle("on", on);
     }
 
     for(const id of ["av","aav"]){
-        $(id).classList.toggle("talking", on);
+        const el = $(id);
+        if(el){
+            el.classList.toggle("talking", on);
+            el.classList.remove("mouth-open");
+        }
     }
 }
-
 function speak(list,cb){
- stopRec();
- if(!("speechSynthesis" in window)){cb&&cb();return}
- speechSynthesis.cancel();const q=list.filter(x=>x.t);
- (function next(){
-  const x=q.shift();if(!x){setSpeaking(false);cb&&cb();return}
-  const hi=x.l==="hi",code=LANGS[lang].v,v=vf(hi?code.slice(0,2):"en");
-  if(hi&&!v){next();return}
-  const u=new SpeechSynthesisUtterance(x.t);if(v)u.voice=v;
-  u.lang=hi?code:"en-IN";u.rate=x.r||(hi?.9:.8);u.pitch=1.15;
-  u.onstart=()=>setSpeaking(true);u.onend=u.onerror=next;speechSynthesis.speak(u);
- })();
+    stopRec();
+
+    if(!("speechSynthesis" in window)){
+        cb && cb();
+        return;
+    }
+
+    speechSynthesis.cancel();
+
+    const q = list.filter(x => x.t);
+
+    function setMouth(open){
+        for(const id of ["av","aav"]){
+            const el = $(id);
+            if(el) el.classList.toggle("mouth-open", open);
+        }
+    }
+
+    (function next(){
+        const x = q.shift();
+
+        if(!x){
+            setSpeaking(false);
+            setMouth(false);
+            cb && cb();
+            return;
+        }
+
+        const hi = x.l === "hi";
+        const code = LANGS[lang].v;
+        const v = vf(hi ? code.slice(0,2) : "en");
+
+        if(hi && !v){
+            next();
+            return;
+        }
+
+        const u = new SpeechSynthesisUtterance(x.t);
+
+        if(v) u.voice = v;
+
+        u.lang = hi ? code : "en-IN";
+        u.rate = x.r || (hi ? .9 : .8);
+        u.pitch = 1.15;
+
+        u.onstart = () => {
+            setSpeaking(true);
+            setMouth(false);
+        };
+
+        u.onboundary = (event) => {
+            if(event.name === "word"){
+                setMouth(true);
+
+                setTimeout(() => setMouth(false), 120);
+            }
+        };
+
+        u.onend = () => {
+            setMouth(false);
+            next();
+        };
+
+        u.onerror = () => {
+            setMouth(false);
+            next();
+        };
+
+        speechSynthesis.speak(u);
+    })();
 }
 
 /* ---- Vaani's ears (microphone) ---- */
