@@ -399,8 +399,8 @@ function answer(q, ctx) {
   }
 
   // 8B. IS, AM AND ARE
-  if (/\b(is|am|are)\b/.test(n) &&
-      /\b(explain|difference|use|uses|when|meaning|what|how)\b/.test(n)) {
+  if (/\b(is am and are|is am are|is and are|am and are)\b/.test(n) ||
+    /\b(use|uses|difference|explain)\b.*\b(is|am|are)\b/.test(n)) {
     return reply(
       "Is, am and are are forms of the verb 'to be'. " +
       "AM is used with I: I am a student. " +
