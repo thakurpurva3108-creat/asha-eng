@@ -61,44 +61,38 @@ select{font:inherit;padding:10px;border-radius:12px;border:2px solid var(--pri2)
 .av{width:124px;height:124px;position:relative;border-radius:50%;padding:5px;background:linear-gradient(135deg,#c9bfff,#ffc9e3);flex:none}
 .av img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
 
-/* Vaani mouth animation */
-.av {
-    position: relative;
-}
 
+/* Vaani mouth animation */
 .av .mouth {
     position: absolute;
-    width: 13px;
-    height: 5px;
-    left: 50%;
-    top: 66%;
-    transform: translateX(-50%);
-    background: #9b4545;
+    left: 58%;
+    top: 68%;
+    width: 19%;
+    height: 13%;
+    border: 2px solid #f4a0a9;
     border-radius: 50%;
+    background: #76233d;
+    transform: scaleY(0.12);
+    transform-origin: center;
+    pointer-events: none;
     opacity: 0;
     z-index: 2;
 }
 
 .av.talking .mouth {
     opacity: 1;
-    animation: mouthMove 0.25s infinite alternate;
+    animation: talk-mouth 0.22s ease-in-out infinite alternate;
 }
 
-@keyframes mouthMove {
+@keyframes talk-mouth {
     from {
-        height: 3px;
-        width: 11px;
+        transform: scaleY(0.18);
     }
     to {
-        height: 10px;
-        width: 13px;
+        transform: scaleY(1);
     }
 }
 
-/* Simple speech animation layered over the existing tutor image. */
-.av .mouth{position:absolute;left:58%;top:68%;width:19%;height:13%;border:2px solid #f4a0a9;border-radius:50%;background:#76233d;transform:scaleY(.12);transform-origin:center;pointer-events:none;transition:transform .12s ease}
-.av.talking .mouth{animation:talk-mouth .22s ease-in-out infinite alternate}
-@keyframes talk-mouth{from{transform:scaleY(.18)}to{transform:scaleY(1)}}
 .av.on{animation:ringp 1.2s infinite}
 @keyframes ringp{0%{box-shadow:0 0 0 0 rgba(124,108,240,.55)}100%{box-shadow:0 0 0 18px rgba(124,108,240,0)}}
 .wave{display:flex;align-items:center;gap:3px;height:40px}
