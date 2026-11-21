@@ -1241,9 +1241,15 @@ const code = localLang
 
 const voices = speechSynthesis.getVoices();
 
-const v = voices.find(voice =>
-    voice.lang.toLowerCase() === code.toLowerCase()
-);
+const v = localLang
+    ? voices.find(voice =>
+        voice.lang.toLowerCase() === code.toLowerCase()
+      )
+    : voices.find(voice =>
+        voice.name === "Microsoft Heera - English (India)"
+      ) || voices.find(voice =>
+        voice.lang.toLowerCase() === "en-in"
+      );
 
 const u = new SpeechSynthesisUtterance(x.t);
 
