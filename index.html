@@ -928,23 +928,28 @@ function speak(list, cb) {
             return;
         }
 
-        const hi = x.l === "hi";
-        const code = LANGS[lang].v;
-        const v = vf(hi ? code.slice(0, 2) : "en");
+        const localLang = x.l === "hi"
+    ? lang
+    : (LANGS[x.l] ? x.l : null);
 
-        if (hi && !v) {
-            next();
-            return;
-        }
+const code = localLang
+    ? LANGS[localLang].v
+    : "en-IN";
 
-        const u = new SpeechSynthesisUtterance(x.t);
+const v = vf(localLang ? code.slice(0, 2) : "en");
 
-        if (v) u.voice = v;
+if (localLang && !v) {
+    next();
+    return;
+}
 
-        u.lang = hi ? code : "en-IN";
-        u.rate = x.r || (hi ? .9 : .8);
-        u.pitch = 1.15;
+const u = new SpeechSynthesisUtterance(x.t);
 
+if (v) u.voice = v;
+
+u.lang = code;
+u.rate = x.r || (localLang ? .9 : .8);
+u.pitch = 1.15;
         let fallbackTimer;
         let closeTimer;
         let boundaryDetected = false;
@@ -1329,9 +1334,10 @@ async function sendAsk(q) {
         // Use Vaani's built-in tutor.
         // No API key or backend server required.
         const a = answer(q, {
-            now: new Date(),
-            pics: PICS
-        });
+    now: new Date(),
+    pics: PICS,
+    lang: lang
+});
 
         // Remove the temporary thinking message.
         const chat = $("chat");
@@ -1344,13 +1350,8 @@ async function sendAsk(q) {
         addMsg("v", renderAns(a));
 
         if (a.say && Array.isArray(a.say)) {
-            speak(a.say.map(x => ({
-                t: x.t,
-                r: x.r,
-                l: "en"
-            })));
-        }
-
+    speak(a.say);
+}
     } catch (error) {
         const chat = $("chat");
 
