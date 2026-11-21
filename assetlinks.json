@@ -1,8 +1,0 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "com.onrender.asha_eng.twa",
-        "sha256_cert_fingerprints": ["40:4C:F4:D0:F6:D3:58:68:C4:C0:33:A6:A1:FE:AA:43:82:CC:49:B6:03:F8:19:AF:8A:32:FB:94:41:14:E2:F1"]
-      }
-    }]
