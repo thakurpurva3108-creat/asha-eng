@@ -1111,8 +1111,28 @@ async function downloadLessons() {
 });
 
 /* ---- wiring ---- */
-for(const id of ["wl","wr","awl","awr"])$(id).innerHTML=Array.from({length:9},(_,k)=>'<i style="animation-delay:'+((k%5)*.12)+'s"></i>').join("");
-for(const id of ["rbars","arbars"])$(id).innerHTML=Array.from({length:22},(_,k)=>'<i style="animation-delay:'+((k%7)*.1)+'s"></i>').join("");
+
+for (const id of ["wl", "wr", "awl", "awr"]) {
+    const el = $(id);
+    if (el) {
+        el.innerHTML = Array.from(
+            { length: 9 },
+            (_, k) => '<i style="animation-delay:' + ((k % 5) * .12) + 's"></i>'
+        ).join("");
+    }
+}
+
+
+for (const id of ["rbars", "arbars"]) {
+    const el = $(id);
+    if (el) {
+        el.innerHTML = Array.from(
+            { length: 22 },
+            (_, k) => '<i style="animation-delay:' + ((k % 7) * .1) + 's"></i>'
+        ).join("");
+    }
+}
+
 const sel=$("lg");Object.keys(LANGS).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=LANGS[k].name;sel.appendChild(o)});
 sel.value=lang;sel.onchange=()=>{lang=sel.value;SV("lang",lang)};
 
