@@ -410,9 +410,10 @@ function answer(q, ctx) {
     );
   }
 
-  // 8C. DO AND DOES
-  if (/\b(do|does)\b/.test(n) &&
-      /\b(explain|difference|use|uses|when|what|how)\b/.test(n)) {
+    // 8C. DO AND DOES
+  if (
+    /explain do and does|difference between do and does|use of do and does|when to use do and does|how to use do and does|do vs does/.test(n)
+  ) {
     return reply(
       "Do and does are used in questions and negative sentences in the simple present tense. " +
       "Use DO with I, you, we and they. Example: Do you play cricket? " +
