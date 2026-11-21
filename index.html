@@ -58,38 +58,45 @@ select{font:inherit;padding:10px;border-radius:12px;border:2px solid var(--pri2)
 .lh .cnt{min-width:54px;text-align:center;background:#fff;border-radius:14px;padding:8px;color:var(--pri);font-weight:700;font-size:.9rem;flex:none}
 .bar{height:8px;background:#fff;border-radius:6px;margin-bottom:14px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--pri2),#ec5b9a);transition:width .3s}
 .avrow{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px}
-.av{width:124px;height:124px;position:relative;border-radius:50%;padding:5px;background:linear-gradient(135deg,#c9bfff,#ffc9e3);flex:none}
-.av img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
 
-
-/* Vaani mouth animation */
-.av .mouth {
-    position: absolute;
-    left: 52%;
-    top: 53%;
-    width: 15%;
-    height: 7%;
-    background: #76233d;
-    border: 1px solid #f4a0a9;
+.av {
+    width: 124px;
+    height: 124px;
+    position: relative;
     border-radius: 50%;
-    transform: translate(-50%, -50%) scaleY(0.12);
-    transform-origin: center;
-    opacity: 0;
-    z-index: 3;
-    pointer-events: none;
+    padding: 5px;
+    background: linear-gradient(135deg,#c9bfff,#ffc9e3);
+    flex: none;
+    overflow: hidden;
 }
 
-.av .mouth {
-    /* existing properties */
+.av::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border-radius: 50%;
+    background-image: url("vaani-expressions.png");
+    background-size: 300% 300%;
+    background-repeat: no-repeat;
+    background-position: 0% 0%;
 }
 
-.av.talking .mouth {
-    /* existing properties */
+.av.face-0::before { background-position: 0% 0%; }
+.av.face-1::before { background-position: 50% 0%; }
+.av.face-2::before { background-position: 100% 0%; }
+
+.av.face-3::before { background-position: 0% 50%; }
+.av.face-4::before { background-position: 50% 50%; }
+.av.face-5::before { background-position: 100% 50%; }
+
+.av.face-6::before { background-position: 0% 100%; }
+.av.face-7::before { background-position: 50% 100%; }
+.av.face-8::before { background-position: 100% 100%; }
+
+.av.on {
+    animation: ringp 1.2s infinite;
 }
 
-.av.mouth-open .mouth {
-    /* existing properties */
-}
 .av.on{animation:ringp 1.2s infinite}
 @keyframes ringp{0%{box-shadow:0 0 0 0 rgba(124,108,240,.55)}100%{box-shadow:0 0 0 18px rgba(124,108,240,0)}}
 .wave{display:flex;align-items:center;gap:3px;height:40px}
@@ -160,9 +167,7 @@ input{width:100%;font:inherit;font-size:1.2rem;padding:12px;border-radius:14px;b
  <div class="avrow">
   <div class="wave" id="wl"></div>
 
-  <div class="av" id="av">
-    <img src="coach.webp" alt="Vaani">
-  </div>
+  <div class="av face-0" id="av" role="img" aria-label="Vaani"></div>
 
   <div class="wave" id="wr"></div>
 </div>
@@ -186,11 +191,16 @@ input{width:100%;font:inherit;font-size:1.2rem;padding:12px;border-radius:14px;b
 </div>
 
 <div id="ask" class="screen hide">
- <div class="lh"><button class="bk" id="aback" aria-label="Back">‹</button><div><b>Ask Vaani</b><small>Ask questions by voice or text</small></div><span class="cnt"></span></div>
- <div class="avrow"><div class="wave" id="awl"></div><div class="av" id="aav">
-    <img src="coach.webp" alt="Vaani">
-    <span class="mouth"></span>
-</div><div class="wave" id="awr"></div></div>
+    <div class="lh">
+        <button class="bk" id="aback" aria-label="Back">‹</button>
+        <div><b>Ask Vaani</b></div>
+    </div>
+
+    <div class="avrow">
+        <div class="av face-0" id="aav" role="img" aria-label="Vaani"></div>
+        <div class="wave" id="awr"></div>
+    </div>
+   
  <div class="chat" id="chat"></div>
  <div class="chips" id="chips"></div>
  <div class="ysc hide" id="aysCard"><small>You said</small><div id="ays"></div></div>
@@ -736,26 +746,37 @@ function loadV(){voices=speechSynthesis.getVoices()}
 if("speechSynthesis" in window){loadV();speechSynthesis.onvoiceschanged=loadV}
 const vf=l=>{const v=voices.filter(x=>x.lang.toLowerCase().startsWith(l));return v.find(x=>/female|heera|veena|neerja|swara|zira|samantha|google/i.test(x.name))||v[0]};
 
-function setSpeaking(on){
-    speaking = on;
 
-    for(const id of ["av","wl","wr","aav","awl","awr"]){
+function setAvatarFrame(frame) {
+    for (const id of ["av", "aav"]) {
         const el = $(id);
-        if(el) el.classList.toggle("on", on);
-    }
+        if (!el) continue;
 
-    for(const id of ["av","aav"]){
-        const el = $(id);
-        if(el){
-            el.classList.toggle("talking", on);
-            el.classList.remove("mouth-open");
+        for (let i = 0; i < 9; i++) {
+            el.classList.remove("face-" + i);
         }
+
+        el.classList.add("face-" + frame);
     }
 }
-function speak(list,cb){
+
+function setSpeaking(on) {
+    speaking = on;
+
+    for (const id of ["av", "wl", "wr", "aav", "awl", "awr"]) {
+        const el = $(id);
+        if (el) el.classList.toggle("on", on);
+    }
+
+    if (!on) {
+        setAvatarFrame(0);
+    }
+}
+
+function speak(list, cb) {
     stopRec();
 
-    if(!("speechSynthesis" in window)){
+    if (!("speechSynthesis" in window)) {
         cb && cb();
         return;
     }
@@ -764,66 +785,95 @@ function speak(list,cb){
 
     const q = list.filter(x => x.t);
 
-    function setMouth(open){
-        for(const id of ["av","aav"]){
-            const el = $(id);
-            if(el) el.classList.toggle("mouth-open", open);
-        }
-    }
-
-    (function next(){
+    (function next() {
         const x = q.shift();
 
-        if(!x){
+        if (!x) {
             setSpeaking(false);
-            setMouth(false);
             cb && cb();
             return;
         }
 
         const hi = x.l === "hi";
         const code = LANGS[lang].v;
-        const v = vf(hi ? code.slice(0,2) : "en");
+        const v = vf(hi ? code.slice(0, 2) : "en");
 
-        if(hi && !v){
+        if (hi && !v) {
             next();
             return;
         }
 
         const u = new SpeechSynthesisUtterance(x.t);
 
-        if(v) u.voice = v;
+        if (v) u.voice = v;
 
         u.lang = hi ? code : "en-IN";
         u.rate = x.r || (hi ? .9 : .8);
         u.pitch = 1.15;
 
+        let fallbackTimer;
+        let closeTimer;
+        let boundaryDetected = false;
+        let frameIndex = 0;
+
+        const speakingFrames = [1, 2, 3, 6];
+
+        function clearAnimationTimers() {
+            clearInterval(fallbackTimer);
+            clearTimeout(closeTimer);
+        }
+
         u.onstart = () => {
             setSpeaking(true);
-            setMouth(false);
+            setAvatarFrame(0);
+
+            fallbackTimer = setInterval(() => {
+                if (!boundaryDetected) {
+                    frameIndex = (frameIndex + 1) % speakingFrames.length;
+                    setAvatarFrame(speakingFrames[frameIndex]);
+                }
+            }, 170);
         };
 
-        u.onboundary = (event) => {
-            if(event.name === "word"){
-                setMouth(true);
+        u.onboundary = event => {
+            if (event.name !== "word") return;
 
-                setTimeout(() => setMouth(false), 120);
-            }
+            boundaryDetected = true;
+            clearInterval(fallbackTimer);
+
+            const start = event.charIndex || 0;
+            const word = x.t.slice(start).split(/\s+/)[0] || "";
+
+            const frame = /[ou]/i.test(word)
+                ? 3
+                : speakingFrames[frameIndex % speakingFrames.length];
+
+            frameIndex++;
+            setAvatarFrame(frame);
+
+            clearTimeout(closeTimer);
+
+            closeTimer = setTimeout(() => {
+                setAvatarFrame(0);
+            }, 140);
         };
 
         u.onend = () => {
-            setMouth(false);
+            clearAnimationTimers();
+            setAvatarFrame(0);
             next();
         };
 
         u.onerror = () => {
-            setMouth(false);
+            clearAnimationTimers();
+            setAvatarFrame(0);
             next();
         };
 
         speechSynthesis.speak(u);
     })();
 }
+
 
 /* ---- Vaani's ears (microphone) ---- */
 const ERR={"not-allowed":"The microphone is blocked. Tap the 🔒 icon next to the web address, choose Permissions, allow the Microphone, then tap 🎤.",
