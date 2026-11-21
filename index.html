@@ -80,15 +80,15 @@ select{font:inherit;padding:10px;border-radius:12px;border:2px solid var(--pri2)
 }
 
 .av .mouth {
-    transition: transform 0.08s ease, opacity 0.08s ease;
+    /* existing properties */
 }
 
 .av.talking .mouth {
-    opacity: 1;
+    /* existing properties */
 }
 
 .av.mouth-open .mouth {
-    transform: translate(-50%, -50%) scaleY(0.85);
+    /* existing properties */
 }
 .av.on{animation:ringp 1.2s infinite}
 @keyframes ringp{0%{box-shadow:0 0 0 0 rgba(124,108,240,.55)}100%{box-shadow:0 0 0 18px rgba(124,108,240,0)}}
@@ -162,7 +162,6 @@ input{width:100%;font:inherit;font-size:1.2rem;padding:12px;border-radius:14px;b
 
   <div class="av" id="av">
     <img src="coach.webp" alt="Vaani">
-    <span class="mouth"></span>
   </div>
 
   <div class="wave" id="wr"></div>
