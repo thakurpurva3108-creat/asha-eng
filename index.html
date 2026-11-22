@@ -1798,6 +1798,52 @@ $("abulb").onclick = () => {
 function toHome(){const sp=$("splash");if(!sp)return;sp.classList.add("out");setTimeout(()=>{sp.remove();goHome()},450)}
 setTimeout(toHome,2600);$("splash").onclick=toHome;
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+ 
+(function () {
+    if (!("speechSynthesis" in window)) {
+        alert("Speech synthesis is not supported.");
+        return;
+    }
+
+    let shown = false;
+
+    function checkVoices() {
+        if (shown) return;
+
+        const voices = speechSynthesis.getVoices();
+
+        if (!voices.length) return;
+
+        shown = true;
+
+        const languages = [
+            "hi", "mr", "bn", "ta", "te", "gu",
+            "kn", "ml", "pa", "or", "ur"
+        ];
+
+        const available = voices.filter(v =>
+            languages.some(code =>
+                v.lang.toLowerCase().startsWith(code + "-")
+            )
+        );
+
+        alert(
+            "Total voices: " + voices.length +
+            "\n\nIndian language voices:\n" +
+            (available.length
+                ? available.map(v => v.name + " (" + v.lang + ")").join("\n")
+                : "No matching Indian language voices found.")
+        );
+    }
+
+    speechSynthesis.addEventListener(
+        "voiceschanged",
+        checkVoices
+    );
+
+    setTimeout(checkVoices, 3000);
+})();
+   
 </script>
 </body>
 </html>
