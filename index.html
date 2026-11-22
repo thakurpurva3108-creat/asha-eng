@@ -1250,12 +1250,6 @@ function speak(list, cb) {
                 voice.name === "Microsoft Heera - English (India)"
             );
 
-        // Skip local speech if its matching voice is unavailable
-        if (localLang && !v) {
-            next();
-            return;
-        }
-
         const u = new SpeechSynthesisUtterance(x.t);
 
         if (v) {
