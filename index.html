@@ -1176,11 +1176,11 @@ const PICS={};LESSONS.forEach(l=>l.s.forEach(s=>{if(s.t==="rep"&&s.w&&s.p&&isPic
 const esc=t=>t.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 /* ---- Vaani's voice ---- */
-const H=s=>lang==="hi"
- ?(s.hi||"")
- :s.k
-  ?"'"+s.sw+"' "+LANGS[lang][s.k]
-  :(s[lang]||s.hi||"");
+const H = s => {
+  if (lang === "hi") return s.hi || "";
+  if (s.k) return "'" + s.sw + "' " + LANGS[lang][s.k];
+  return s[lang] || s.hi || "";
+};
 const HS=s=>s.k?LANGS[lang][s.k]:H(s);
 const asha=s=>{const l=[],h=H(s);if(h&&s.t!=="tap")l.push({t:h,l:"hi"});if(s.en)l.push({t:s.en,l:"en"});return l};
 function loadV(){voices=speechSynthesis.getVoices()}
